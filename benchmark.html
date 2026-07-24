@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<!-- The Compression Benchmark. Data and imagery live in benchmark-assets/. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Compression Benchmark</title>
+<meta name="description" content="Thirty-five public-domain masterworks, each rebuilt as emblem code and set beside the original. A study of how much of a picture survives the format, open to inspection at full resolution.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#100e0b; --panel:#181510; --panel2:#211d16; --line:#332d23;
+    --gold:#c9a866; --gold-dim:#a98f52; --txt:#ece6da; --dim:#a49b89; --faint:#6d665a;
+    --serif:"Cormorant Garamond","Georgia",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--gold)}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 28px}
+  .over{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold-dim)}
+
+  header.hero{padding:82px 0 8px;text-align:center;background:radial-gradient(120% 80% at 50% -20%, #1a160f 0%, var(--bg) 62%)}
+  .hero h1{font-family:var(--serif);font-weight:600;letter-spacing:.005em;font-size:clamp(40px,6.6vw,76px);line-height:1.02;margin:14px 0 0;color:var(--txt)}
+  .hero .sub{font-family:var(--serif);font-style:italic;color:var(--dim);font-weight:400;font-size:clamp(17px,2.2vw,22px);max-width:640px;margin:16px auto 0;line-height:1.4}
+
+  .walltext{max-width:760px;margin:56px auto 8px;text-align:center}
+  .walltext p{font-family:var(--serif);font-size:clamp(17px,2.1vw,21px);line-height:1.5;color:var(--txt);font-weight:400}
+  .rule{width:44px;height:1px;background:var(--gold-dim);margin:30px auto 0;opacity:.6}
+
+  main{padding-top:20px}
+  section.gallery{padding:46px 0 6px}
+  section.gallery+section.gallery{border-top:1px solid var(--line)}
+  .ghead{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+  .ghead .rn{font-family:var(--serif);font-weight:600;color:var(--txt);font-size:28px;letter-spacing:.02em}
+  .meter{display:flex;align-items:center;gap:7px;margin-left:auto}
+  .meter .mlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-right:5px}
+  .pip{width:8px;height:8px;border-radius:50%;border:1px solid #574f40}
+  .pip.on{background:var(--gold-dim);border-color:var(--gold-dim)}
+
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:22px}
+  @media(max-width:940px){.grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr)}}
+  .card{cursor:pointer}
+  .card .fr{aspect-ratio:1/1;overflow:hidden;background:#0b0906;border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.4);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+  .card:hover .fr{transform:translateY(-4px);border-color:var(--gold-dim);box-shadow:0 8px 22px rgba(0,0,0,.55)}
+  .card img{width:100%;height:100%;object-fit:cover;display:block}
+  .card .cap{padding:11px 2px 0}
+  .card .cap .ar{font-size:10.5px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .cap .ti{font-family:var(--serif);font-style:italic;color:var(--txt);font-size:16px;line-height:1.25;margin-top:2px}
+
+  footer{padding:56px 0 90px;color:var(--faint);font-size:13px;border-top:1px solid var(--line);margin-top:44px}
+  footer p{max-width:840px;margin:0 auto 12px;text-align:center;line-height:1.6}
+  footer .cta{text-align:center;margin:26px 0 4px}
+  footer .cta a{display:inline-block;border:1px solid var(--gold-dim);color:var(--gold);padding:11px 26px;border-radius:3px;text-decoration:none;font-family:var(--serif);font-size:17px}
+  footer .cta a:hover{background:var(--gold);color:#17130b}
+
+  .modal{position:fixed;inset:0;background:rgba(6,5,3,.95);display:none;z-index:50;overflow:auto;padding:14px}
+  .modal.open{display:block}
+  .sheet{width:97vw;max-width:1780px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:24px 22px 30px}
+  .mhead{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+  .mhead .ar{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dim)}
+  .mhead h2{font-family:var(--serif);font-weight:600;font-size:34px;margin:3px 0 3px;line-height:1.05}
+  .mhead .meta{color:var(--dim);font-family:var(--serif);font-style:italic;font-size:16px}
+  .xbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:4px;width:40px;height:40px;font-size:22px;cursor:pointer;flex:none;line-height:1}
+  .xbtn:hover{border-color:var(--gold-dim);color:var(--gold)}
+  .modebar{display:flex;margin:20px 0 4px;border:1px solid var(--line);border-radius:4px;overflow:hidden;width:fit-content}
+  .modebar button{background:var(--panel2);border:none;color:var(--dim);padding:9px 22px;cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+  .modebar button.on{background:var(--gold-dim);color:#17130b}
+  .hint{color:var(--faint);margin:12px 0 20px;font-family:var(--serif);font-style:italic;font-size:15px}
+  .panels{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:860px){.panels{grid-template-columns:1fr;max-width:520px;margin:0 auto}}
+  .pane .lab{margin-bottom:10px}
+  .pane .lab .nm{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase}
+  .pane.src .nm{color:var(--faint)} .pane.ec .nm{color:var(--gold)} .pane.ot .nm{color:var(--dim)}
+  .frame{position:relative;aspect-ratio:1/1;background:#0b0906;border:1px solid var(--line);overflow:hidden;cursor:crosshair}
+  .frame img{width:100%;height:100%;display:block}
+  .loupe{position:absolute;width:172px;height:172px;border-radius:50%;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(0,0,0,.55),0 6px 22px rgba(0,0,0,.65);pointer-events:none;background-repeat:no-repeat;display:none;z-index:3}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:13px;gap:6px}
+  .stats .s .k{font-size:10px;letter-spacing:.06em;color:var(--faint);text-transform:uppercase}
+  .stats .s .v{font-family:var(--serif);font-weight:600;font-size:21px;margin-top:1px;color:var(--txt)}
+  .pane.ec .stats .s.sim .v{color:var(--gold)}
+  .mfoot{color:var(--faint);font-size:13px;margin-top:24px;border-top:1px solid var(--line);padding-top:16px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="over">A Reconstruction Study</div>
+    <h1>The Compression Benchmark</h1>
+    <p class="sub">Thirty-five masterworks, each rebuilt as emblem code and placed beside the original.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="walltext">
+    <p>An emblem editor stores a picture as a few hundred flat rectangles. Thirty-five masterworks are rebuilt under that limit and set beside the original, each measured for similarity and open to inspection up close.</p>
+    <div class="rule"></div>
+  </div>
+</div>
+
+<main class="wrap" id="galleries"></main>
+
+<footer>
+  <div class="wrap">
+    <p>Each tool converts the same 512&times;512 source; the result is rendered back to 512&times;512 and scored for <b>Similarity</b> to the original, 0 to 100, where 100 is identical. The underlying measure is the SSIM structural-similarity index.</p>
+    <p>Emblem Converter runs a single pass on stock settings. The other tool is run across all 84 settings it exposes and its closest fitting result is shown. Each is held to its own size limit: 1,250,000 and 1,280,000 encoded bytes. No per-work tuning was applied to Emblem Converter.</p>
+    <p>Sources: the open-access collections of Wikimedia Commons and partner museums, and NASA. Every work is public domain or CC0.</p>
+    <div class="cta"><a href="index.html">Open the converter &rarr;</a></div>
+  </div>
+</footer>
+
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const ASSETS = "benchmark-assets/";
+const ROMAN = {1:"I", 2:"II", 3:"III", 4:"IV", 5:"V", 6:"VI", 7:"VII"};
+const ZOOM = 2.6, LOUPE = 172;
+let works = [], mode = "smooth";
+
+const DATA = {"works":[{"id":"art_mondrian","artist":"Piet Mondrian","title":"Composition II in Red, Blue and Yellow","gallery":1,"smooth":{"sim":97,"N":512,"kb":1167},"pixel":{"sim":93,"N":256,"kb":389},"others":{"sim":91,"N":128,"kb":680}},{"id":"a2_whistler_mother","artist":"James M. Whistler","title":"Whistler's Mother","gallery":1,"smooth":{"sim":91,"N":512,"kb":1186},"pixel":{"sim":85,"N":256,"kb":1186},"others":{"sim":81,"N":128,"kb":834}},{"id":"a2_velazquez_meninas","artist":"Diego Velazquez","title":"Las Meninas","gallery":1,"smooth":{"sim":92,"N":512,"kb":1171},"pixel":{"sim":84,"N":160,"kb":1113},"others":{"sim":76,"N":128,"kb":1045}},{"id":"art_vermeer","artist":"Johannes Vermeer","title":"Girl with a Pearl Earring","gallery":1,"smooth":{"sim":85,"N":256,"kb":1170},"pixel":{"sim":78,"N":160,"kb":1173},"others":{"sim":75,"N":128,"kb":1170}},{"id":"a2_vangogh_bedroom","artist":"Vincent van Gogh","title":"The Bedroom","gallery":1,"smooth":{"sim":75,"N":512,"kb":1167},"pixel":{"sim":64,"N":256,"kb":1164},"others":{"sim":62,"N":128,"kb":1236}},{"id":"g14","artist":"Leonardo da Vinci","title":"Mona Lisa","gallery":2,"smooth":{"sim":70,"N":256,"kb":1148},"pixel":{"sim":61,"N":160,"kb":1193},"others":{"sim":60,"N":128,"kb":1249}},{"id":"art_scream","artist":"Edvard Munch","title":"The Scream","gallery":2,"smooth":{"sim":78,"N":256,"kb":1190},"pixel":{"sim":68,"N":128,"kb":1176},"others":{"sim":59,"N":64,"kb":584}},{"id":"art_cezanne","artist":"Paul Cezanne","title":"The Card Players","gallery":2,"smooth":{"sim":80,"N":256,"kb":1186},"pixel":{"sim":68,"N":128,"kb":1199},"others":{"sim":58,"N":64,"kb":584}},{"id":"art_turner","artist":"J. M. W. Turner","title":"Rain, Steam and Speed","gallery":2,"smooth":{"sim":64,"N":256,"kb":1193},"pixel":{"sim":59,"N":160,"kb":1169},"others":{"sim":56,"N":128,"kb":1182}},{"id":"art_sunflowers","artist":"Vincent van Gogh","title":"Sunflowers","gallery":2,"smooth":{"sim":72,"N":512,"kb":1160},"pixel":{"sim":67,"N":256,"kb":1026},"others":{"sim":56,"N":64,"kb":584}},{"id":"a2_delacroix_liberty","artist":"Eugene Delacroix","title":"Liberty Leading the People","gallery":3,"smooth":{"sim":80,"N":256,"kb":1212},"pixel":{"sim":69,"N":128,"kb":1193},"others":{"sim":55,"N":64,"kb":584}},{"id":"n13","artist":"Leon Cathedral","title":"Rose Window","gallery":3,"smooth":{"sim":75,"N":256,"kb":1211},"pixel":{"sim":66,"N":160,"kb":1138},"others":{"sim":53,"N":64,"kb":551}},{"id":"art_mughal","artist":"Isfahan court","title":"Shah Abbas Receives the Ambassador","gallery":3,"smooth":{"sim":76,"N":256,"kb":1166},"pixel":{"sim":64,"N":128,"kb":1208},"others":{"sim":53,"N":64,"kb":583}},{"id":"a2_bruegel_babel","artist":"Pieter Bruegel the Elder","title":"The Tower of Babel","gallery":3,"smooth":{"sim":77,"N":256,"kb":1167},"pixel":{"sim":63,"N":128,"kb":1199},"others":{"sim":51,"N":64,"kb":583}},{"id":"a2_rousseau_dream","artist":"Henri Rousseau","title":"The Dream","gallery":3,"smooth":{"sim":78,"N":256,"kb":1192},"pixel":{"sim":64,"N":256,"kb":1120},"others":{"sim":51,"N":64,"kb":582}},{"id":"a2_elgreco_toledo","artist":"El Greco","title":"View of Toledo","gallery":4,"smooth":{"sim":65,"N":256,"kb":1184},"pixel":{"sim":57,"N":128,"kb":1211},"others":{"sim":49,"N":64,"kb":584}},{"id":"art_botticelli","artist":"Sandro Botticelli","title":"The Birth of Venus","gallery":4,"smooth":{"sim":72,"N":256,"kb":1203},"pixel":{"sim":60,"N":128,"kb":1182},"others":{"sim":48,"N":64,"kb":584}},{"id":"g11","artist":"Katsushika Hokusai","title":"The Great Wave off Kanagawa","gallery":4,"smooth":{"sim":67,"N":256,"kb":1174},"pixel":{"sim":65,"N":256,"kb":1182},"others":{"sim":47,"N":64,"kb":576}},{"id":"art_seurat","artist":"Georges Seurat","title":"A Sunday on La Grande Jatte","gallery":4,"smooth":{"sim":57,"N":256,"kb":1129},"pixel":{"sim":51,"N":128,"kb":1170},"others":{"sim":46,"N":64,"kb":584}},{"id":"art_bruegeltriumph","artist":"Pieter Bruegel the Elder","title":"The Triumph of Death","gallery":4,"smooth":{"sim":70,"N":256,"kb":1171},"pixel":{"sim":59,"N":160,"kb":1200},"others":{"sim":46,"N":64,"kb":582}},{"id":"art_monet","artist":"Claude Monet","title":"The Water-Lily Pond","gallery":5,"smooth":{"sim":54,"N":512,"kb":1212},"pixel":{"sim":49,"N":128,"kb":1174},"others":{"sim":46,"N":64,"kb":584}},{"id":"art_klimt","artist":"Gustav Klimt","title":"The Kiss","gallery":5,"smooth":{"sim":67,"N":256,"kb":1165},"pixel":{"sim":53,"N":128,"kb":1196},"others":{"sim":45,"N":64,"kb":583}},{"id":"art_kandinsky","artist":"Wassily Kandinsky","title":"Composition VII","gallery":5,"smooth":{"sim":69,"N":256,"kb":1182},"pixel":{"sim":54,"N":128,"kb":1211},"others":{"sim":44,"N":64,"kb":584}},{"id":"a2_monet_rouen","artist":"Claude Monet","title":"Rouen Cathedral","gallery":5,"smooth":{"sim":67,"N":256,"kb":1180},"pixel":{"sim":51,"N":256,"kb":1118},"others":{"sim":41,"N":64,"kb":584}},{"id":"a2_raphael_athens","artist":"Raphael","title":"The School of Athens","gallery":5,"smooth":{"sim":72,"N":256,"kb":1174},"pixel":{"sim":57,"N":160,"kb":1211},"others":{"sim":41,"N":64,"kb":583}},{"id":"a2_vaneyck_ghent","artist":"Van Eyck brothers","title":"The Ghent Altarpiece","gallery":6,"smooth":{"sim":73,"N":256,"kb":1179},"pixel":{"sim":59,"N":192,"kb":1188},"others":{"sim":41,"N":64,"kb":547}},{"id":"art_bosch","artist":"Hieronymus Bosch","title":"The Garden of Earthly Delights","gallery":6,"smooth":{"sim":68,"N":256,"kb":1209},"pixel":{"sim":50,"N":160,"kb":1213},"others":{"sim":36,"N":64,"kb":583}},{"id":"g13","artist":"Vincent van Gogh","title":"The Starry Night","gallery":6,"smooth":{"sim":50,"N":256,"kb":1144},"pixel":{"sim":40,"N":128,"kb":1180},"others":{"sim":30,"N":64,"kb":584}},{"id":"n16","artist":"Iona / Kells","title":"Book of Kells, Carpet Page","gallery":6,"smooth":{"sim":66,"N":256,"kb":1190},"pixel":{"sim":49,"N":192,"kb":1201},"others":{"sim":29,"N":64,"kb":584}},{"id":"a2_vangogh_wheat","artist":"Vincent van Gogh","title":"Wheatfield with Crows","gallery":6,"smooth":{"sim":47,"N":256,"kb":1149},"pixel":{"sim":37,"N":160,"kb":1194},"others":{"sim":29,"N":64,"kb":584}},{"id":"a2_rublev_trinity","artist":"Andrei Rublev","title":"The Trinity","gallery":7,"smooth":{"sim":59,"N":256,"kb":1187},"pixel":{"sim":42,"N":160,"kb":1203},"others":{"sim":26,"N":64,"kb":584}},{"id":"art_hiroshige","artist":"Utagawa Hiroshige","title":"Sudden Shower over Shin-Ohashi","gallery":7,"smooth":{"sim":62,"N":256,"kb":1179},"pixel":{"sim":43,"N":192,"kb":1105},"others":{"sim":25,"N":64,"kb":582}},{"id":"a2_thangka","artist":"Ngor Monastery, Tibet","title":"Buddhist Thangka","gallery":7,"smooth":{"sim":50,"N":192,"kb":1219},"pixel":{"sim":35,"N":128,"kb":1210},"others":{"sim":22,"N":64,"kb":584}},{"id":"art_unicorn","artist":"Paris workshop","title":"The Lady and the Unicorn: Hearing","gallery":7,"smooth":{"sim":62,"N":256,"kb":1166},"pixel":{"sim":41,"N":160,"kb":1155},"others":{"sim":20,"N":64,"kb":584}},{"id":"n25","artist":"Nature","title":"Peacock Feathers","gallery":7,"smooth":{"sim":40,"N":192,"kb":1195},"pixel":{"sim":27,"N":160,"kb":1169},"others":{"sim":14,"N":64,"kb":584}}]};
+works = DATA.works;
+renderGalleries();
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function renderGalleries(){
+  const byGallery = {};
+  works.forEach(w => (byGallery[w.gallery] = byGallery[w.gallery] || []).push(w));
+  let html = "";
+  Object.keys(byGallery).sort((a, b) => a - b).forEach(g => {
+    let pips = "";
+    for (let k = 1; k <= 7; k++) pips += `<span class="pip ${k <= g ? "on" : ""}"></span>`;
+    const cards = byGallery[g].map(w => `
+      <div class="card" onclick="openWork('${w.id}')">
+        <div class="fr"><img loading="lazy" src="${ASSETS + w.id}_thumb.webp" alt="${esc(w.title)}"></div>
+        <div class="cap">
+          <div class="ar">${esc(w.artist)}</div>
+          <div class="ti">${esc(w.title)}</div>
+        </div>
+      </div>`).join("");
+    html += `
+      <section class="gallery">
+        <div class="ghead">
+          <span class="rn">Gallery ${ROMAN[g]}</span>
+          <span class="meter"><span class="mlabel">Complexity</span>${pips}</span>
+        </div>
+        <div class="grid">${cards}</div>
+      </section>`;
+  });
+  document.getElementById("galleries").innerHTML = html;
+}
+
+function openWork(id){
+  const w = works.find(x => x.id === id);
+  if (!w) return;
+  mode = "smooth";
+  drawSheet(w);
+  const modal = document.getElementById("modal");
+  modal.classList.add("open");
+  modal.scrollTop = 0;
+  document.body.style.overflow = "hidden";
+}
+function closeModal(){
+  document.getElementById("modal").classList.remove("open");
+  document.body.style.overflow = "";
+}
+function setMode(m, id){ mode = m; drawSheet(works.find(x => x.id === id)); }
+
+function pane(cls, name, role, img, rows){
+  const stats = rows.map(r => `<div class="s ${r.c || ""}"><div class="k">${r.k}</div><div class="v">${r.v}</div></div>`).join("");
+  return `
+    <div class="pane ${cls}">
+      <div class="lab"><span class="nm">${name}</span></div>
+      <div class="frame" data-role="${role}"><img src="${img}"><div class="loupe"></div></div>
+      <div class="stats">${stats}</div>
+    </div>`;
+}
+function drawSheet(w){
+  const ec = w[mode], ot = w.others, coda = w.id === "n25";
+  const src = pane("src", "Original", "src", `${ASSETS + w.id}_src.webp`,
+    [{k:"Reference", v:"512 px"}, {k:"", v:""}, {k:"", v:""}]);
+  const converter = pane("ec", "Emblem Converter", "ec", `${ASSETS + w.id}_${mode}.webp`,
+    [{k:"Similarity", v:ec.sim + "/100", c:"sim"}, {k:"Resolution", v:ec.N + " px"}, {k:"Size", v:ec.kb + " KB"}]);
+  const other = pane("ot", "Other tools", "ot", `${ASSETS + w.id}_others.webp`,
+    [{k:"Similarity", v:ot.sim + "/100"}, {k:"Resolution", v:ot.N + " px"}, {k:"Size", v:ot.kb + " KB"}]);
+  document.getElementById("sheet").innerHTML = `
+    <div class="mhead">
+      <div>
+        <div class="ar">${esc(w.artist)}</div>
+        <h2>${esc(w.title)}</h2>
+        <div class="meta">Gallery ${ROMAN[w.gallery]}${coda ? " &middot; the coda" : ""}</div>
+      </div>
+      <button class="xbtn" onclick="closeModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modebar">
+      <button class="${mode === "smooth" ? "on" : ""}" onclick="setMode('smooth','${w.id}')">Smooth</button>
+      <button class="${mode === "pixel" ? "on" : ""}" onclick="setMode('pixel','${w.id}')">Pixel</button>
+    </div>
+    <div class="hint">Hover across any panel to magnify the same detail in all three at once.</div>
+    <div class="panels">${src}${converter}${other}</div>
+    <div class="mfoot">Similarity is measured against the original, where 100 is identical. Emblem Converter uses one stock pass; the other tool uses the closest of 84 settings that fit the same size budget. Smooth is the default engine, Pixel the hard-edge mode.</div>`;
+  attachLoupe();
+}
+
+function attachLoupe(){
+  const frames = [...document.querySelectorAll(".panels .frame")];
+  const loupes = frames.map(f => f.querySelector(".loupe"));
+  const imgs = frames.map(f => f.querySelector("img"));
+  function move(e){
+    const host = e.currentTarget.getBoundingClientRect();
+    const px = e.touches ? e.touches[0].clientX : e.clientX;
+    const py = e.touches ? e.touches[0].clientY : e.clientY;
+    const rx = Math.min(1, Math.max(0, (px - host.left) / host.width));
+    const ry = Math.min(1, Math.max(0, (py - host.top) / host.height));
+    frames.forEach((f, i) => {
+      const r = f.getBoundingClientRect(), L = loupes[i];
+      const bgW = r.width * ZOOM, bgH = r.height * ZOOM;
+      L.style.display = "block";
+      L.style.backgroundImage = `url("${imgs[i].src}")`;
+      L.style.backgroundSize = `${bgW}px ${bgH}px`;
+      L.style.backgroundPosition = `${-(rx * bgW - LOUPE / 2)}px ${-(ry * bgH - LOUPE / 2)}px`;
+      L.style.left = `${rx * r.width - LOUPE / 2}px`;
+      L.style.top = `${ry * r.height - LOUPE / 2}px`;
+    });
+  }
+  const hide = () => loupes.forEach(L => L.style.display = "none");
+  frames.forEach(f => {
+    f.addEventListener("mousemove", move);
+    f.addEventListener("mouseleave", hide);
+    f.addEventListener("touchmove", e => { move(e); e.preventDefault(); }, {passive:false});
+    f.addEventListener("touchend", hide);
+  });
+}
+
+document.getElementById("modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+</script>
+</body>
+</html>
