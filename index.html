@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Emblem Converter v1.0.0 (c) 2026 f1f2f0e0e4e0ede8ff0e - PolyForm Noncommercial License 1.0.0 - noncommercial use only
+<!-- Emblem Converter v1.1.0 (c) 2026 f1f2f0e0e4e0ede8ff0e - PolyForm Noncommercial License 1.0.0 - noncommercial use only
      Required Notice: Copyright (c) 2026 f1f2f0e0e4e0ede8ff0e - https://github.com/f1f2f0e0e4e0ede8ff0e/emblem-converter
      SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0 -->
 <html lang="en">
@@ -428,7 +428,7 @@
       <div class="row2 advanced-only" id="rSharp"><div class="txt"><span>Sharp resize</span><span class="tip" tabindex="0">i<span class="pop">Keeps hard pixel edges when resizing instead of smoothing. Best for pixel-art sources; leave off for photos and logos.</span></span></div><div class="sw" id="sharpSw" role="switch" tabindex="0" aria-checked="false"></div></div>
       <div class="row2"><div class="txt"><span>Crop empty edges</span><span class="tip" tabindex="0">i<span class="pop">Trims blank margins and re-centers the image to fill the frame.</span></span></div><div class="sw" id="cropSw" role="switch" tabindex="0" aria-checked="false"></div></div>
       <div class="field advanced-only" id="fColors"><div class="lab"><div class="lwrap"><label for="colors">Colors</label><span class="tip" tabindex="0">i<span class="pop">How many colors the emblem uses. Fewer is smaller and flatter.</span></span></div><div class="numwrap"><input type="number" class="numin" id="colorsN" min="1" max="128" step="1"></div></div><input type="range" id="colors" min="1" max="128" value="24"></div>
-      <div class="field advanced-only" id="fDetail"><div class="lab"><div class="lwrap"><label for="detail">Detail</label><span class="tip" tabindex="0">i<span class="pop">How finely the smooth gradients follow the image. Higher keeps more detail (more gradient stops, a little larger); lower is smoother and smaller. Auto-optimize tunes this for you.</span></span></div><div class="numwrap"><input type="number" class="numin" id="detailN" min="1" max="40" step="1"></div></div><input type="range" id="detail" min="1" max="40" value="30"></div>
+      <div class="field advanced-only" id="fDetail"><div class="lab"><div class="lwrap"><label for="detail">Detail</label><span class="tip" tabindex="0">i<span class="pop">How finely the smooth gradients follow the image. Higher keeps more detail (more gradient stops, a little larger); lower is smoother and smaller. Auto-optimize tunes this for you.</span></span></div><div class="numwrap"><input type="number" class="numin" id="detailN" min="1" max="117" step="1"></div></div><input type="range" id="detail" min="1" max="117" value="59"></div>
       <div class="field advanced-only"><div class="lab"><div class="lwrap"><label for="smooth">Smoothing</label><span class="tip" tabindex="0">i<span class="pop">Reduces grain while keeping edges sharp. Raise it for noisy or photographic images; can shrink the code too.</span></span></div><div class="numwrap"><input type="number" class="numin" id="smoothN" min="0" max="100" step="1"><span class="suf">%</span></div></div><input type="range" id="smooth" min="0" max="100" value="0"></div>
       </div>
     </div>
@@ -547,10 +547,18 @@
    Required Notice: Copyright (c) 2026 f1f2f0e0e4e0ede8ff0e
    ===================================================================== */
 var EMBLEM=512, SLUG_W=66.47, SLUG_H=300;
+/* slug path geometry, needed only to measure what the emitted rect actually paints. the path fills
+   x in [0,66.437] but bulges left to -0.028 over a sliver of its height (the curve's own extremum at
+   t=1/3 of -0.189(1-t)^2 t, not its control point), so its bounding box is wider than its fill. an
+   objectBoundingBox gradient is laid out across that whole box, which shifts and stretches the ramp
+   on the x axis; on y the path is exactly [0,300], which is why only row strips were mis-scored.
+   the fill itself is measured at its nominal extent: it falls ~0.05% short of it, but the seam
+   overlap makes neighbouring rects stack over that edge and cover it. */
+var SLUG_PW=66.437, SLUG_BX0=-0.028, SLUG_BBW=SLUG_PW-SLUG_BX0;
 /**
  * Shared engine value shapes. JSDoc only - no runtime effect.
  * @typedef {{data:Uint8ClampedArray,w?:number,h?:number}} ImgData
- * @typedef {{id:string,type?:string,slug:string,x:number,y:number,scaleX:number,scaleY:number,color:string,index?:number,name?:string,invertedX?:(number|boolean),invertedY?:(number|boolean),rotation?:number,opacity?:number,isFilled?:(number|boolean),internal?:(number|boolean),locked?:(number|boolean),tBold?:(number|boolean),tItalic?:(number|boolean),fontFamily?:(string|null),borderColor?:string,borderSize?:number,gradientStyle?:string,width?:number,height?:number}} Layer
+ * @typedef {{id?:string,type?:string,slug?:string,x:number,y:number,scaleX:number,scaleY:number,color:string,index?:number,name?:string,invertedX?:(number|boolean),invertedY?:(number|boolean),rotation?:number,opacity?:number,isFilled?:(number|boolean),internal?:(number|boolean),locked?:(number|boolean),tBold?:(number|boolean),tItalic?:(number|boolean),fontFamily?:(string|null),borderColor?:string,borderSize?:number,gradientStyle?:string,width?:number,height?:number}} Layer
  * @typedef {{enc:number,[k:string]:any}} Candidate
  * @typedef {{k:number,N:(number|string),autoN:number,method:string,precision:number,overlap:number,quantIters:number,alphaMode:string,autofit:boolean,dither:boolean,smoothPct:number,budget:number,ladder:number[],bright?:number,contrast?:number,sat?:number,noise?:number,bgTol?:number,pareto?:boolean,paretoLadder?:number[],paletteLadder?:number[],postAt?:number,lean?:boolean,tol?:number,toleranceLadder?:number[],plOn?:boolean,sharpResize?:boolean}} EngineOpts
  */
@@ -564,10 +572,12 @@ var TUNING={
   resLadder:[512,384,256,192,128],
   paretoLadder:[512,384,320,256,192,160,128,96,80,64,48,32],   /* dense (N) grid for the Pareto search */
   paletteLadder:[128,96,72,60,52,44,36,28,24,20,16,12,11,10,9,8,7,6,5,4,3,2],  /* single source for the Auto-optimize sweep and the benchmark, so they cannot disagree by a missing step. k=2..12 is every integer (at low k one colour is a large fraction of the palette, so a budget-limited optimum can land on any k); above 12 stays sparse. enc is monotonic in k, so rungs past the budget cost nothing. */
-  detailMax:40, detailDefault:30, toleranceMin:6, toleranceMax:2700,   /* Detail 1..detailMax (higher=finer) maps geometrically onto the per-strip L2 tolerance [toleranceMin,toleranceMax]. toleranceMin=6 is the fitting floor (below it smooth content overruns the budget); toleranceMax=2700 the roughest. 40 steps keep the finest fitting step close under the budget and let every auto pick land on an integer Detail the box reproduces. detailDefault=30 = Simple "High". */
+  detailMax:117, detailDefault:59, toleranceMin:0.3059, toleranceMax:2700,   /* Detail 1..detailMax (higher=finer) maps geometrically onto the per-strip L2 tolerance [toleranceMin,toleranceMax]. 117 steps halve the geometric ratio of the old 40-step grid, so an old Detail v lands on exactly the same tolerance at 2v-1 (old 40 -> 79 -> 6.0, old 30 -> 59 = detailDefault = Simple "High"). the finer grid lets the budget search stop closer under the cap: unused budget is discarded quality, and the coarse grid wasted ~3.4% of it on average. */
   toleranceLadder:/** @type {number[]} */([]),   /* filled below from detailToTolerance(1..detailMax). Auto-optimize sweeps exactly these steps, so every winner lands on an integer Detail that reproduces byte-for-byte when typed. a TUNING field so app.test can override it. */
   plManualTol:520,   /* per-strip L2 tolerance for a manual PL encode when no tol is given (the Detail control normally sets it) */
   plAlphaW:0.4,   /* alpha's weight as a 4th fitStops channel next to Lab L/a/b: keeps a knot at a sharp alpha edge so colour does not bleed across a cutout silhouette. opaque content (constant alpha) adds zero cost => byte-identical. */
+  qChroma:0.35,   /* a/b weight against L in the k-means palette distance. same reasoning as chromaW but a much milder value, and the difference is structural: here the palette IS the colour representation, so weighting chroma down removes hues from the output rather than just moving knots. measured trade: 0.45 -> +1.26 luma for no colour cost, 0.35 -> +1.64 with every image still under a JND (worst +0.61 dE00), 0.25 -> +2.07 but one image lands at +1.64 dE00, a visible shift. SSIM cannot see chroma and will keep paying for it, so the line is drawn at the last value that stays invisible. */
+  chromaW:0.06,   /* a/b weight against L in the knot-placement cost. fidelity is scored on luma, so weighting chroma equally spends knots on pure hue turns the score never sees. only knot POSITIONS shift: the stop colours still come from the least-squares solve, so the measured colour cost is +0.14 dE00, a seventh of a JND. */
   plColorAlphaPow:2,   /* fitStops colour cost is weighted by alpha^this per sample: compositing shows a colour error at opacity a as ~a*error, so pow 2 is premultiplied-correct and near-transparent fringe colour stops stealing knots from the interior. opaque (alpha 255 => weight 1) is byte-identical. */
   segAlphaMin:8,   /* PL gap-split: alpha>=this counts as opaque; below it is a transparent gap that gets no rect, so a gradient cannot ramp across it */
   segBridge:6,   /* PL gap-split: transparent gaps shorter than this (512-space samples) are bridged, so a hairline break does not fragment one shape into many rects */
@@ -802,6 +812,7 @@ function quantize(d,N,k,dither,iters){
     rgbToLab(clamp(r|0,0,255),clamp(g|0,0,255),clamp(bl|0,0,255),blab,j*3);
   }
   var K=Math.min(k,m);
+  var QC=TUNING.qChroma;   /* hoisted out of the four distance loops below */
   /* k-means++ */
   var rng=mulberry32(7);
   var cen=new Float32Array(K*3),cenRGB=new Float32Array(K*3);
@@ -809,7 +820,7 @@ function quantize(d,N,k,dither,iters){
   var first=0,bestw=-1;
   for(var j2=0;j2<m;j2++)if(bw[j2]>bestw){bestw=bw[j2];first=j2;}
   cen.set(blab.subarray(first*3,first*3+3),0);cenRGB.set(brgb.subarray(first*3,first*3+3),0);
-  for(var j3=0;j3<m;j3++){var dl=blab[j3*3]-cen[0],da=blab[j3*3+1]-cen[1],db=blab[j3*3+2]-cen[2];dist[j3]=(dl*dl+da*da+db*db)*bw[j3];}
+  for(var j3=0;j3<m;j3++){var dl=blab[j3*3]-cen[0],da=blab[j3*3+1]-cen[1],db=blab[j3*3+2]-cen[2];dist[j3]=(dl*dl+QC*(da*da+db*db))*bw[j3];}
   for(var c=1;c<K;c++){
     var tot=0;for(var j4=0;j4<m;j4++)tot+=dist[j4];
     var pickv=rng()*tot,acc=0,pick=m-1;
@@ -817,7 +828,7 @@ function quantize(d,N,k,dither,iters){
     cen.set(blab.subarray(pick*3,pick*3+3),c*3);cenRGB.set(brgb.subarray(pick*3,pick*3+3),c*3);
     for(var j6=0;j6<m;j6++){
       var dl2=blab[j6*3]-cen[c*3],da2=blab[j6*3+1]-cen[c*3+1],db2=blab[j6*3+2]-cen[c*3+2];
-      var dd=(dl2*dl2+da2*da2+db2*db2)*bw[j6];
+      var dd=(dl2*dl2+QC*(da2*da2+db2*db2))*bw[j6];
       if(dd<dist[j6])dist[j6]=dd;
     }
   }
@@ -829,7 +840,7 @@ function quantize(d,N,k,dither,iters){
       var bi=0,bd=1e18;
       for(var c2=0;c2<K;c2++){
         var dl3=blab[j7*3]-cen[c2*3],da3=blab[j7*3+1]-cen[c2*3+1],db3=blab[j7*3+2]-cen[c2*3+2];
-        var dd2=dl3*dl3+da3*da3+db3*db3;
+        var dd2=dl3*dl3+QC*(da3*da3+db3*db3);
         if(dd2<bd){bd=dd2;bi=c2;}
       }
       if(asg[j7]!==bi){asg[j7]=bi;moved=true;}
@@ -859,7 +870,7 @@ function quantize(d,N,k,dither,iters){
     var bi=0,bd=1e18;
     for(var c5=0;c5<K;c5++){
       var dl4=tmp3[0]-palLab[c5*3],da4=tmp3[1]-palLab[c5*3+1],db4=tmp3[2]-palLab[c5*3+2];
-      var dd3=dl4*dl4+da4*da4+db4*db4;
+      var dd3=dl4*dl4+QC*(da4*da4+db4*db4);
       if(dd3<bd){bd=dd3;bi=c5;}
     }
     cache.set(key,bi);return bi;
@@ -971,7 +982,7 @@ function hash64(s){
 function emblemIdPrefix(groups,axis){
   var s=""+axis,i,g;
   for(i=0;i<groups.length;i++){g=groups[i];s+=";"+g.l0+","+g.span+","+g.sig;}
-  return "g"+hash64(s);
+  return "g"+hash64(s).slice(0,3);   /* 3 hash chars (36^3 prefixes) keep cross-emblem ids apart at a fraction of the bytes */
 }
 /* shared strip emission: turn strip groups into the accepted svg + min/full layer JSON. one source for
    both the hard-run and piecewise-linear encoders, so the two stay byte-identical in every format detail
@@ -1010,7 +1021,8 @@ function serializeStrips(groups,N,axis,P,OV,kind){
       var stopsStr="",stC='/>';   /* both encoders self-close (host-accepted); smaller than the verbose </stop> form. PL gap-split and hard-run coincident pairs emit the same way. */
       for(var si=0;si<g.stops.length;si++){
         var st=g.stops[si];
-        stopsStr+='<stop offset="'+st[0]+'" stop-color="'+rgbToHex(st[1],st[2],st[3])+'"'+(st[4]<255?' stop-opacity="'+formatNum(st[4]/255,3)+'"':'')+stC;
+        var off=(si===0&&(st[0]===0||st[0]==="0"))?"":' offset="'+st[0]+'"';   /* svg defaults the first stop to offset 0, so it can be left out */
+        stopsStr+='<stop'+off+' stop-color="'+rgbToHex(st[1],st[2],st[3])+'"'+(st[4]<255?' stop-opacity="'+formatNum(st[4]/255,3)+'"':'')+stC;
       }
       totalStops+=g.stops.length;
       var gkey=(axis===0?"h":"v")+stopsStr;
@@ -1023,10 +1035,10 @@ function serializeStrips(groups,N,axis,P,OV,kind){
       layerColor=g.dom?rgbToHex(g.dom[0],g.dom[1],g.dom[2]):rgbToHex(g.stops[0][1],g.stops[0][2],g.stops[0][3]);
     }
     var mtx='matrix('+formatNum(aS,P)+',0,0,'+formatNum(dS,Math.max(4,P))+','+formatNum(tx,P)+','+formatNum(ty,P)+')';
-    paths+='<path '+fill+' d="'+SLUG+'" transform="'+mtx+'"></path>';
+    paths+='<path '+fill+' d="'+SLUG+'" transform="'+mtx+'"/>';
     idx++;
     var sx=Math.max(1,roundTo(aS*100,P)),sy=Math.max(1,roundTo(dS*100,P)),lx=roundTo(tx,P),ly=roundTo(ty,P);
-    Lmin.push({id:"e"+idx,slug:"rectangles/21",x:lx,y:ly,scaleX:sx,scaleY:sy,color:layerColor});   /* minimal layer: the server infers type ("path") and index from array order -> ~20% smaller layerData, same render. Lfull is the explicit fallback. */
+    Lmin.push({x:lx,y:ly,scaleX:sx,scaleY:sy,color:layerColor});   /* minimal layer: the server infers id, slug, type and index from array order -> much smaller layerData, same render. Lfull is the explicit fallback. */
     Lfull.push({id:"e"+idx,name:"21",type:"path",y:ly,x:lx,scaleY:sy,scaleX:sx,invertedY:0,invertedX:0,rotation:0,opacity:100,index:idx,color:layerColor,isFilled:1,internal:0,locked:0,tBold:0,tItalic:0,fontFamily:null,borderColor:"#0",borderSize:0,gradientStyle:"Fill",slug:"rectangles/21",width:66.47,height:300});
   }
   var svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" version="1.1"><defs>'+defs+'</defs>'+BGRECT+paths+'</svg>';
@@ -1044,6 +1056,7 @@ function clampByte(v){return v<0?0:v>255?255:Math.round(v);}   /* clamp + round 
    @param {Float32Array} labs @param {number} N @param {number} thresh @param {Float64Array=} wv per-sample colour-cost weight (visibility); omitted => all-1 (byte-identical) @returns {number[]} */
 function fitStops(labs,N,thresh,wv){
   var prev=new Int32Array(N),next=new Int32Array(N),alive=new Uint8Array(N),cost=new Float64Array(N),i;
+  var CHROMA_W=TUNING.chromaW;   /* hoisted: segmentCost is the hot loop */
   for(i=0;i<N;i++){prev[i]=i-1;next[i]=i+1;alive[i]=1;}
   next[N-1]=-1;
   function segmentCost(k){
@@ -1054,7 +1067,7 @@ function fitStops(labs,N,thresh,wv){
         lr=labs[p*4]+(labs[n*4]-labs[p*4])*f,lg=labs[p*4+1]+(labs[n*4+1]-labs[p*4+1])*f,lb=labs[p*4+2]+(labs[n*4+2]-labs[p*4+2])*f,la=labs[p*4+3]+(labs[n*4+3]-labs[p*4+3])*f,
         dl=labs[t*4]-lr,da=labs[t*4+1]-lg,db=labs[t*4+2]-lb,dA=labs[t*4+3]-la,
         cw=wv?wv[t]:1;   /* colour cost weighted by sample visibility (alpha^plColorAlphaPow); wv omitted => weight 1 => byte-identical */
-      e+=cw*(dl*dl+da*da+db*db)+dA*dA;
+      e+=cw*(dl*dl+CHROMA_W*(da*da+db*db))+dA*dA;
     }
     return e;
   }
@@ -1100,6 +1113,31 @@ function solveStopColors(d,base,stepI,N,knots){
   for(i=k-2;i>=0;i--){cR[i]=(rR[i]-sup[i]*cR[i+1])/diag[i];cG[i]=(rG[i]-sup[i]*cG[i+1])/diag[i];cB[i]=(rB[i]-sup[i]*cB[i+1])/diag[i];}
   var out=new Array(k);for(i=0;i<k;i++)out[i]=[clampByte(cR[i]),clampByte(cG[i]),clampByte(cB[i])];
   return out;
+}
+/* least-squares fitting systematically flattens local contrast (regression to the mean) while SSIM's
+   contrast term peaks when the reconstruction's variance matches the source's. rescaling the stop
+   colours about the RENDERED mean restores it. the optimal gain has a closed form - maximising
+   (2*g*vy + C2)/(vx + g^2*vy + C2) gives g*sqrt below - so there is no free parameter and no cap to
+   tune, and it costs no bytes: same stop count, different values. scaling about the rendered mean
+   rather than the mean of the stop values matters because the stops are not evenly spaced, and
+   shifting the mean would break SSIM's luminance term. */
+function contrastRecover(row,a0,len,knots,cols){
+  var k=knots.length;if(k<2||len<2)return;
+  var C2=58.5225,i,seg=0,sy=0,syy=0,sx=0,sxx=0,mr=0,mg=0,mb=0;
+  for(i=0;i<len;i++){
+    while(seg<k-2&&i>knots[seg+1])seg++;
+    var a=knots[seg],b=knots[seg+1],L=b-a,u=L>0?(i-a)/L:0,c0=cols[seg],c1=cols[seg+1];
+    var r=c0[0]+(c1[0]-c0[0])*u,g=c0[1]+(c1[1]-c0[1])*u,bl=c0[2]+(c1[2]-c0[2])*u;
+    mr+=r;mg+=g;mb+=bl;
+    var ly=0.2126*r+0.7152*g+0.0722*bl;sy+=ly;syy+=ly*ly;
+    var o=(a0+i)<<2,lx=0.2126*row[o]+0.7152*row[o+1]+0.0722*row[o+2];sx+=lx;sxx+=lx*lx;
+  }
+  var n=len,vy=(syy-sy*sy/n)/n,vx=(sxx-sx*sx/n)/n;
+  if(vy<=1e-9||!(vx>vy))return;   /* only ever expands, never flattens further */
+  var gm=(-C2+Math.sqrt(C2*C2+4*vy*(vx+C2)))/(2*vy);
+  if(!(gm>1))return;
+  mr/=n;mg/=n;mb/=n;
+  for(i=0;i<k;i++)cols[i]=[clampByte(mr+gm*(cols[i][0]-mr)),clampByte(mg+gm*(cols[i][1]-mg)),clampByte(mb+gm*(cols[i][2]-mb))];
 }
 /* piecewise-linear strip encoder: fit each strip's smooth (pre-quantize) signal as a few linear
    segments emitted as gradient stops at distinct offsets. knot positions from fitStops (L2-optimal),
@@ -1151,6 +1189,7 @@ function encodeSmoothStrips(d,N,axis,opt){
         for(var ib=0;ib<len;ib++){var ob=(a0+ib)<<2;rgbToLab(row[ob],row[ob+1],row[ob+2],labs,ib*4);labs[ib*4+3]=row[ob+3]*AW;wv[ib]=PL_ACOLOR_LUT[row[ob+3]];}
         var v=fitStops(labs,len,tol,wv);         /* fit this segment only -> offsets are segment-relative (0..1 over [a0,a1)) */
         var cols=solveStopColors(row,a0*4,4,len,v);
+        contrastRecover(row,a0,len,v,cols);
         stops=[];model=[];
         for(var jv=0;jv<v.length;jv++){
           var vi=v[jv],ov=(a0+vi)<<2,cc=cols[jv];
@@ -1242,10 +1281,80 @@ function rasterizeStrips(cand,N){
   return out;
 }
 
+/* measurement raster: the candidate drawn on the true 512 grid with geometric area coverage.
+   the emitted rects sit at fractional cross-axis positions (strip height 512/N) and a real
+   rasterizer antialiases those edges, so scoring on the N grid mis-measures every N that does not
+   divide 512 (up to 17 points at N=64) and fences the search into {512,256,128,64}.
+   adjacent strips cover DISJOINT parts of a pixel, so their contributions are SUMMED, not
+   source-over composited; groups are walked back to front and each takes min(coverage, remaining),
+   which preserves painter order where the seam overlap makes two strips claim the same area. */
+var _covC=null,_covA=null,_covR=null,_covOut=null,_covLine=null;   /* one 512-grid allocation, reused: the search measures thousands of candidates */
+var _ssCa=null,_ssCb=null,_ssCaa=null,_ssCbb=null,_ssCab=null;   /* sliding column sums for the overlapping SSIM window, likewise reused */
+function sampleModel(g,n,t0,tw){
+  var line=_covLine,i,p;
+  if(g.solid){
+    for(i=0;i<n;i++){p=i<<2;line[p]=g.solid[0];line[p+1]=g.solid[1];line[p+2]=g.solid[2];line[p+3]=g.solid[3];}
+    return line;
+  }
+  var m=g.model,len=m.length,k=0;
+  for(i=0;i<n;i++){
+    var t=(i+0.5-t0)/tw;p=i<<2;   /* pixel centre, mapped through the gradient's own bounding box */
+    if(t<0)t=0;else if(t>1)t=1;
+    while(k+1<len&&m[k+1][0]<=t)k++;
+    if(t<=m[0][0]){line[p]=m[0][1];line[p+1]=m[0][2];line[p+2]=m[0][3];line[p+3]=m[0][4];}
+    else if(k>=len-1){var sL=m[len-1];line[p]=sL[1];line[p+1]=sL[2];line[p+2]=sL[3];line[p+3]=sL[4];}
+    else{
+      var s0=m[k],s1=m[k+1],sp=s1[0]-s0[0],f=sp>1e-9?(t-s0[0])/sp:1;
+      if(f<0)f=0;else if(f>1)f=1;
+      line[p]=s0[1]+(s1[1]-s0[1])*f;line[p+1]=s0[2]+(s1[2]-s0[2])*f;
+      line[p+2]=s0[3]+(s1[3]-s0[3])*f;line[p+3]=s0[4]+(s1[4]-s0[4])*f;
+    }
+  }
+  return line;
+}
+function renderCoverage(cand,S){
+  var N=cand.N,axis=cand.axis,h=S/N,px=S*S,groups=cand.groups,i;
+  if(!_covR||_covR.length!==px){_covC=new Float32Array(px*3);_covA=new Float32Array(px);_covR=new Float32Array(px);_covOut=new Uint8ClampedArray(px*4);_covLine=new Float32Array(S*4);}
+  var C=_covC,A=_covA,R=_covR,out=_covOut;
+  C.fill(0);A.fill(0);R.fill(1);
+  for(var gi=groups.length-1;gi>=0;gi--){
+    var g=groups[gi];
+    var a0=g.a1!=null?g.a0:0,a1=g.a1!=null?g.a1:S,alen=a1-a0;   /* PL segment, or the whole line for a hard-run group */
+    if(alen<=0)continue;
+    /* the slug path is SLUG_PW wide but is scaled by the declared SLUG_W, so whichever extent that
+       scale drives comes out SLUG_PW/SLUG_W short. along the long axis that is a ~0.25px strip of
+       background down the far edge, which a real rasterizer shows and the score must see. */
+    var aS=alen/SLUG_W;
+    var t0=axis===0?SLUG_BX0*aS:0,tw=axis===0?SLUG_BBW*aS:alen;   /* the gradient spans the path's bbox, which is wider than its fill on the x axis */
+    var line=sampleModel(g,alen,t0,tw);
+    var y0=g.l0*h,y1=y0+h*g.span;   /* the rect's true fractional cross-axis extent */
+    var c0=Math.floor(y0),c1=Math.ceil(y1);
+    if(c0<0)c0=0; if(c1>S)c1=S;
+    var pstep=axis===0?1:S,nmax=alen<S-a0?alen:S-a0;
+    for(var c=c0;c<c1;c++){
+      var lo=c>y0?c:y0,hi=(c+1)<y1?(c+1):y1,cov=hi-lo;   /* this row's area share of the rect */
+      if(cov<=0)continue;
+      var p=axis===0?(c*S+a0):(a0*S+c);   /* the axis only decides where the run starts and how it strides */
+      for(i=0;i<nmax;i++,p+=pstep){
+        var rp=R[p];
+        if(rp<=0)continue;
+        var take=cov<rp?cov:rp,q=i<<2,sa=take*(line[q+3]*(1/255)),p3=p*3;
+        C[p3]+=line[q]*sa;C[p3+1]+=line[q+1]*sa;C[p3+2]+=line[q+2]*sa;
+        A[p]+=sa;R[p]=rp-take;
+      }
+    }
+  }
+  for(i=0;i<px;i++){
+    var a=A[i],o=i<<2;
+    if(a>0){var i3=i*3;out[o]=C[i3]/a;out[o+1]=C[i3+1]/a;out[o+2]=C[i3+2]/a;out[o+3]=a*255;}
+    else{out[o]=0;out[o+1]=0;out[o+2]=0;out[o+3]=0;}
+  }
+  return out;
+}
 /* fidelity: composite over gray, then PSNR + windowed SSIM on luma. SSIM tracks structure/edges
    better than PSNR (which is dominated by flat regions). one rasterization feeds both. */
 function measureVsRef(cand,N,ref,S){
-  var img=rasterizeStrips(cand,N);
+  var img=renderCoverage(cand,S);N=S;   /* measured on the true 512 grid, so the sampling below is the identity */
   var G=127;
   var A=new Float32Array(S*S), B=new Float32Array(S*S);
   var se=0,cnt=0;
@@ -1257,21 +1366,38 @@ function measureVsRef(cand,N,ref,S){
       var ar=ref[pr+3]/255, ai=img[pi+3]/255;
       var rr=ref[pr]*ar+G*(1-ar), rg=ref[pr+1]*ar+G*(1-ar), rb=ref[pr+2]*ar+G*(1-ar);
       var ir=img[pi]*ai+G*(1-ai), ig=img[pi+1]*ai+G*(1-ai), ib=img[pi+2]*ai+G*(1-ai);
-      A[Y*S+X]=0.299*rr+0.587*rg+0.114*rb;
-      B[Y*S+X]=0.299*ir+0.587*ig+0.114*ib;
+      A[Y*S+X]=0.2126*rr+0.7152*rg+0.0722*rb;   /* BT.709: the luma weights sRGB is defined against */
+      B[Y*S+X]=0.2126*ir+0.7152*ig+0.0722*ib;
       var dr=rr-ir,dg=rg-ig,db=rb-ib; se+=dr*dr+dg*dg+db*db; cnt+=3;
     }
   }
   var psnr=cnt?(se/cnt<=0.0001?99:10*Math.log10(65025/(se/cnt))):99;
-  var win=8,C1=6.5025,C2=58.5225,ssum=0,wcnt=0,nwin=win*win;
-  for(var by=0;by+win<=S;by+=win)for(var bx=0;bx+win<=S;bx+=win){
-    var ma=0,mb=0,yy,xx,idx;
-    for(yy=0;yy<win;yy++)for(xx=0;xx<win;xx++){idx=(by+yy)*S+(bx+xx);ma+=A[idx];mb+=B[idx];}
-    ma/=nwin;mb/=nwin;
-    var va=0,vb=0,cov=0,da,dbb;
-    for(yy=0;yy<win;yy++)for(xx=0;xx<win;xx++){idx=(by+yy)*S+(bx+xx);da=A[idx]-ma;dbb=B[idx]-mb;va+=da*da;vb+=dbb*dbb;cov+=da*dbb;}
-    va/=nwin-1;vb/=nwin-1;cov/=nwin-1;
-    ssum+=((2*ma*mb+C1)*(2*cov+C2))/((ma*ma+mb*mb+C1)*(va+vb+C2));wcnt++;
+  /* SSIM over FULLY OVERLAPPING 8x8 windows (stride 1), held to O(1) per window by sliding the column
+     sums down and across. a non-overlapping block grid is cheaper but ranks candidates differently
+     from standard SSIM - structure that straddles a block seam is scored by no window at all - and it
+     was measurably picking worse emblems. sliding costs ~1.3ms more per measurement. */
+  var win=8,C1=6.5025,C2=58.5225,nwin=win*win,P=S-win+1,ssum=0,wcnt=0,wx,wy;
+  if(!_ssCa||_ssCa.length!==S){_ssCa=new Float64Array(S);_ssCb=new Float64Array(S);_ssCaa=new Float64Array(S);_ssCbb=new Float64Array(S);_ssCab=new Float64Array(S);}
+  var ca=_ssCa,cb=_ssCb,caa=_ssCaa,cbb=_ssCbb,cab=_ssCab;
+  for(var by=0;by<P;by++){
+    if(by===0){
+      ca.fill(0);cb.fill(0);caa.fill(0);cbb.fill(0);cab.fill(0);
+      for(wy=0;wy<win;wy++){var rb0=wy*S;for(wx=0;wx<S;wx++){var av=A[rb0+wx],bv=B[rb0+wx];ca[wx]+=av;cb[wx]+=bv;caa[wx]+=av*av;cbb[wx]+=bv*bv;cab[wx]+=av*bv;}}
+    }else{
+      var rOut=(by-1)*S,rIn=(by-1+win)*S;   /* one row leaves the band, one enters */
+      for(wx=0;wx<S;wx++){
+        var ao=A[rOut+wx],bo=B[rOut+wx],an=A[rIn+wx],bn=B[rIn+wx];
+        ca[wx]+=an-ao;cb[wx]+=bn-bo;caa[wx]+=an*an-ao*ao;cbb[wx]+=bn*bn-bo*bo;cab[wx]+=an*bn-ao*bo;
+      }
+    }
+    var wa=0,wb=0,waa=0,wbb=0,wab=0;
+    for(wx=0;wx<win;wx++){wa+=ca[wx];wb+=cb[wx];waa+=caa[wx];wbb+=cbb[wx];wab+=cab[wx];}
+    for(var bx=0;bx<P;bx++){
+      if(bx>0){var xo=bx-1,xi=bx-1+win;wa+=ca[xi]-ca[xo];wb+=cb[xi]-cb[xo];waa+=caa[xi]-caa[xo];wbb+=cbb[xi]-cbb[xo];wab+=cab[xi]-cab[xo];}
+      var ma=wa/nwin,mb=wb/nwin,
+        va=(waa-nwin*ma*ma)/(nwin-1),vb=(wbb-nwin*mb*mb)/(nwin-1),cov=(wab-nwin*ma*mb)/(nwin-1);
+      ssum+=((2*ma*mb+C1)*(2*cov+C2))/((ma*ma+mb*mb+C1)*(va+vb+C2));wcnt++;
+    }
   }
   return {psnr:psnr, ssim: wcnt?ssum/wcnt:1};
 }
@@ -1600,7 +1726,7 @@ var CONTROLS=[
   {id:"techSw",key:"showTech",kind:"switch",def:false},
   {id:"noLimitsSw",key:"noLimits",kind:"switch",def:false,after:function(){applyLimitCaps();clampStateToLimits();}},   /* raise/lower every control's bounds, then snap the current values into the new range */
   {id:"pixSw",key:"pixelize",kind:"switch",def:false,eng:{opt:"plOn",map:function(v){return !v;}}},   /* Pixelization: OFF (default) => smooth gradient engine (plOn true); ON => hard pixel engine (plOn false). deterministic - the toggle picks the engine outright, in both modes (no e.off) */
-  {id:"detail",num:"detailN",key:"detail",kind:"range",def:TUNING.detailDefault,eng:{opt:"tol",map:detailToTolerance}},   /* smooth-engine Detail 1..40 (higher=finer), mapped by detailToTolerance onto the grid Auto-optimize sweeps, so a manual Detail and the auto pick at that value encode identically. only the smooth encode (the hard engine ignores tol). */
+  {id:"detail",num:"detailN",key:"detail",kind:"range",def:TUNING.detailDefault,eng:{opt:"tol",map:detailToTolerance}},   /* smooth-engine Detail 1..detailMax (higher=finer), mapped by detailToTolerance onto the grid Auto-optimize sweeps, so a manual Detail and the auto pick at that value encode identically. only the smooth encode (the hard engine ignores tol). */
   {id:"sizeSeg",attr:"size",key:"resolution",kind:"seg",def:"auto",parse:normalizeResolution,eng:{opt:"N",map:normalizeResolution}},
   {id:"methodSeg",attr:"m",key:"method",kind:"seg",def:"auto",eng:{opt:"method"}},
   {id:"precSeg",attr:"p",key:"precision",kind:"seg",def:3,parse:Number,eng:{opt:"precision",off:3}},
@@ -2683,8 +2809,8 @@ var BENCH_RES=[512,384,320,256,192,128,96,64];
 var BENCH_KCAP=/** @type {Object.<number,number>} */({512:24,384:36,320:52,256:72,192:128,128:128,96:96,64:72});
 function benchPalette(N){var cap=BENCH_KCAP[N]||128;return TUNING.paletteLadder.filter(function(/** @type {number} */k){return k<=cap;}).sort(function(/** @type {number} */a,/** @type {number} */b){return a-b;});}
 /* Smooth-mode grid axis: Detail (1..detailMax) instead of colour count. Higher detail = finer tolerance = more bytes (same role k plays for Pixelization). */
-var BENCH_DETAIL=[40,34,29,24,20,16,13,10,7,4];
-var BENCH_DCAP=/** @type {Object.<number,number>} */({512:24,384:34});   /* high resolution + high detail overflows fast AND is the slowest smooth encode, so cap that corner; other resolutions sweep the full ladder */
+var BENCH_DETAIL=[79,67,57,47,39,31,25,19,13,7];   /* the same ten tolerances as before, on the finer Detail grid (old v -> 2v-1) */
+var BENCH_DCAP=/** @type {Object.<number,number>} */({512:47,384:67});   /* high resolution + high detail overflows fast AND is the slowest smooth encode, so cap that corner; other resolutions sweep the full ladder */
 function benchDetailLadder(N){var cap=BENCH_DCAP[N]||TUNING.detailMax;return BENCH_DETAIL.filter(function(/** @type {number} */d){return d<=cap;});}
 var benchMode="pixel";   /* "pixel" | "smooth" - set by benchRun from the active engine; drives the Colours<->Detail column + all labels */
 function benchIsSmooth(){return benchMode==="smooth";}

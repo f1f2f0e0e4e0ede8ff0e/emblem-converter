@@ -6,7 +6,7 @@ Convert an image or a line of text into the code an emblem editor uses to reprod
 
 **[Live demo](https://f1f2f0e0e4e0ede8ff0e.github.io/emblem-converter/)**
 
-Version 1.0.0
+Version 1.1.0
 
 ## How it works
 
