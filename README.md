@@ -6,7 +6,7 @@ Convert an image or a line of text into the code an emblem editor uses to reprod
 
 **[Live demo](https://f1f2f0e0e4e0ede8ff0e.github.io/emblem-converter/)**
 
-Version 1.1.0
+Version 1.2.0
 
 ## How it works
 
@@ -28,5 +28,7 @@ Open `index.html` in a current browser, or use the live demo. Drop or paste an i
 ## License
 
 Emblem Converter is released under the [PolyForm Noncommercial License 1.0.0](LICENSE): it may be used, modified, and shared for any noncommercial purpose, provided the copyright notice and license text are retained. Commercial use is not permitted.
+
+The benchmark page sets its text in Cormorant Garamond, bundled in `fonts/` under the [SIL Open Font License 1.1](fonts/OFL.txt) so the page loads nothing from anyone else's server.
 
 The engine that inspired the tool was made by @flashbackgta.

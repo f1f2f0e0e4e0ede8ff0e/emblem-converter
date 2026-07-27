@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Emblem Converter v1.1.0 (c) 2026 f1f2f0e0e4e0ede8ff0e - PolyForm Noncommercial License 1.0.0 - noncommercial use only
+<!-- Emblem Converter v1.2.0 (c) 2026 f1f2f0e0e4e0ede8ff0e - PolyForm Noncommercial License 1.0.0 - noncommercial use only
      Required Notice: Copyright (c) 2026 f1f2f0e0e4e0ede8ff0e - https://github.com/f1f2f0e0e4e0ede8ff0e/emblem-converter
      SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0 -->
 <html lang="en">
@@ -55,10 +55,10 @@
 
   /* ---------- layout ---------- */
   .grid{display:grid;grid-template-columns:334px minmax(0,1fr) 366px;gap:15px;align-items:start}
-  @media(max-width:1180px){.grid{grid-template-columns:322px minmax(0,1fr)}.colR{grid-column:1/-1}}
-  @media(max-width:860px){.grid{grid-template-columns:1fr}.colL,.colR{grid-column:auto}}
-  .colL,.colR{display:flex;flex-direction:column;gap:13px}
-  .colR{align-self:stretch}   /* fill the row height so the sticky group can track the full scroll of the tall advanced settings */
+  @media(max-width:1180px){.grid{grid-template-columns:322px minmax(0,1fr)}.colright{grid-column:1/-1}}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}.colleft,.colright{grid-column:auto}}
+  .colleft,.colright{display:flex;flex-direction:column;gap:13px}
+  .colright{align-self:stretch}   /* fill the row height so the sticky group can track the full scroll of the tall advanced settings */
   .rstick{display:flex;flex-direction:column;gap:13px}
   @media(min-width:1181px){.rstick{position:sticky;top:14px;z-index:5}}   /* wide layout only: Output + Credits stay visible while scrolling, moving together as one block so they never overlap; settles back at the top. below 1180 the column drops full-width, so no sticky. */
   .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 1px 0 rgba(255,255,255,.025) inset,0 10px 28px rgba(0,0,0,.22)}
@@ -133,6 +133,7 @@
   .sw.on{background:var(--acc)}
   .sw.on::after{left:17px;background:#181005}
   .sw:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  .sw[aria-disabled="true"]{opacity:.38;cursor:not-allowed}
   .swbtn{display:flex;align-items:center;gap:7px}
   .swatch{width:26px;height:26px;border-radius:7px;border:1px solid var(--line2);cursor:pointer;flex:none;padding:0}
   .pick{background:var(--card2);border:1px solid var(--line2);color:var(--muted);border-radius:7px;padding:6px 9px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;justify-content:center}
@@ -147,7 +148,7 @@
   .acc.open>.acc-b{display:block}
 
   /* ---------- center: large sticky preview ---------- */
-  .colC{min-width:0;align-self:stretch} /* stretches to grid height so sticky works */
+  .colmid{min-width:0;align-self:stretch} /* stretches to grid height so sticky works */
   .stagewrap{max-width:min(100%,calc(100vh - 150px));margin:0 auto;position:sticky;top:14px}
   @media(max-width:860px){.stagewrap{position:static}}
   .stage{position:relative;border:1px solid #262c35;border-radius:18px;overflow:hidden;aspect-ratio:1;width:100%;background:conic-gradient(#14171d 90deg,#0f1216 0 180deg,#14171d 0 270deg,#0f1216 0) 0 0/28px 28px;box-shadow:0 18px 60px rgba(0,0,0,.42)}
@@ -266,18 +267,18 @@
     width:30px;height:30px;cursor:pointer;font-size:16px;line-height:1;font-family:inherit}
   .modal .mclose:hover{color:var(--ink);border-color:var(--line2)}
   .modal .mbody{padding:18px 20px}
-  .cropStage{position:relative;margin:0 auto;line-height:0;touch-action:none;user-select:none;width:max-content;max-width:100%}
-  .cropStage canvas{display:block;max-width:100%;border-radius:6px}
-  .cropBox{position:absolute;border:1.5px solid var(--acc);cursor:move;box-sizing:border-box;z-index:2}
+  .cropstage{position:relative;margin:0 auto;line-height:0;touch-action:none;user-select:none;width:max-content;max-width:100%}
+  .cropstage canvas{display:block;max-width:100%;border-radius:6px}
+  .cropbox{position:absolute;border:1.5px solid var(--acc);cursor:move;box-sizing:border-box;z-index:2}
   .cshade{position:absolute;background:rgba(0,0,0,.6);pointer-events:none;z-index:1}
   .crnr{position:absolute;width:13px;height:13px;background:var(--acc);border:2px solid #181005;border-radius:3px;z-index:2}
   .crnr[data-h="nw"]{left:-7px;top:-7px;cursor:nwse-resize}.crnr[data-h="ne"]{right:-7px;top:-7px;cursor:nesw-resize}
   .crnr[data-h="sw"]{left:-7px;bottom:-7px;cursor:nesw-resize}.crnr[data-h="se"]{right:-7px;bottom:-7px;cursor:nwse-resize}
   /* position crop handles by data-h, NOT a .sw/.ne class, so they never collide with the switch (.sw::after knob) */
-  .cropCtrls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:15px;flex-wrap:wrap}
-  .cropCtrls .csz{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12.5px}
-  .cropCtrls .csz input{width:84px}
-  .cropCtrls .cbtns{display:flex;gap:8px;margin-left:auto}
+  .cropctrls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:15px;flex-wrap:wrap}
+  .cropctrls .csz{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12.5px}
+  .cropctrls .csz input{width:84px}
+  .cropctrls .cbtns{display:flex;gap:8px;margin-left:auto}
   .btable{width:100%;border-collapse:collapse;font-size:12px}
   .btable th,.btable td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line)}
   .btable th:first-child,.btable td:first-child{text-align:left}
@@ -384,7 +385,7 @@
 
 <div class="grid">
   <!-- ================= LEFT: SETTINGS ================= -->
-  <div class="colL">
+  <div class="colleft">
     <div class="panel">
       <p class="h">Source</p>
       <div class="seg" id="inputSeg"><button data-in="image" class="on">Image</button><button data-in="text">Text</button></div>
@@ -469,7 +470,7 @@
   </div>
 
   <!-- ================= CENTER: PREVIEW ================= -->
-  <div class="colC">
+  <div class="colmid">
     <div class="stagewrap">
       <div class="stage clickable" id="stage">
         <div class="empty"><div class="eicon">+</div><span class="e1">Drop an image here or click</span><span class="e2">PNG · JPG · WEBP · paste with Ctrl+V</span></div>
@@ -500,7 +501,7 @@
   </div>
 
   <!-- ================= RIGHT: OUTPUT ================= -->
-  <div class="colR">
+  <div class="colright">
     <div class="rstick">
     <div class="panel" id="outPanel">
       <p class="h">Output</p>
@@ -554,7 +555,7 @@ var EMBLEM=512, SLUG_W=66.47, SLUG_H=300;
    on the x axis; on y the path is exactly [0,300], which is why only row strips were mis-scored.
    the fill itself is measured at its nominal extent: it falls ~0.05% short of it, but the seam
    overlap makes neighbouring rects stack over that edge and cover it. */
-var SLUG_PW=66.437, SLUG_BX0=-0.028, SLUG_BBW=SLUG_PW-SLUG_BX0;
+var SLUG_FILL_W=66.437, SLUG_BBOX_X0=-0.028, SLUG_BBOX_W=SLUG_FILL_W-SLUG_BBOX_X0;   /* an objectBoundingBox gradient is laid across the BBOX, not the fill: the curve bulges past the left edge, so the two differ. */
 /**
  * Shared engine value shapes. JSDoc only - no runtime effect.
  * @typedef {{data:Uint8ClampedArray,w?:number,h?:number}} ImgData
@@ -576,6 +577,7 @@ var TUNING={
   toleranceLadder:/** @type {number[]} */([]),   /* filled below from detailToTolerance(1..detailMax). Auto-optimize sweeps exactly these steps, so every winner lands on an integer Detail that reproduces byte-for-byte when typed. a TUNING field so app.test can override it. */
   plManualTol:520,   /* per-strip L2 tolerance for a manual PL encode when no tol is given (the Detail control normally sets it) */
   plAlphaW:0.4,   /* alpha's weight as a 4th fitStops channel next to Lab L/a/b: keeps a knot at a sharp alpha edge so colour does not bleed across a cutout silhouette. opaque content (constant alpha) adds zero cost => byte-identical. */
+  ssimWin:8,   /* side of the search proxy's window, chosen by how often it ranks a pair of candidates the way the canonical gaussian metric does. 6 through 12 all sit at ~100% (8 misses one pair in 487); it falls off above that, to 99.4% at 16 and 97.7% at 20. the sliding sums make every size cost the same, so this is purely an accuracy choice. */
   qChroma:0.35,   /* a/b weight against L in the k-means palette distance. same reasoning as chromaW but a much milder value, and the difference is structural: here the palette IS the colour representation, so weighting chroma down removes hues from the output rather than just moving knots. measured trade: 0.45 -> +1.26 luma for no colour cost, 0.35 -> +1.64 with every image still under a JND (worst +0.61 dE00), 0.25 -> +2.07 but one image lands at +1.64 dE00, a visible shift. SSIM cannot see chroma and will keep paying for it, so the line is drawn at the last value that stays invisible. */
   chromaW:0.06,   /* a/b weight against L in the knot-placement cost. fidelity is scored on luma, so weighting chroma equally spends knots on pure hue turns the score never sees. only knot POSITIONS shift: the stop colours still come from the least-squares solve, so the measured colour cost is +0.14 dE00, a seventh of a JND. */
   plColorAlphaPow:2,   /* fitStops colour cost is weighted by alpha^this per sample: compositing shows a colour error at opacity a as ~a*error, so pow 2 is premultiplied-correct and near-transparent fringe colour stops stealing knots from the interior. opaque (alpha 255 => weight 1) is byte-identical. */
@@ -628,7 +630,7 @@ var NOW=(typeof performance!=="undefined"&&performance.now)?function(){return pe
 /* ---------- color space ---------- */
 var linearLUT=new Float32Array(256);
 (function(){for(var i=0;i<256;i++){var c=i/255;linearLUT[i]=c>0.04045?Math.pow((c+0.055)/1.055,2.4):c/12.92;}})();
-function rgbToLab(r,g,b,out,o){
+function rgbToLab(r,g,b,out,off){
   var R=linearLUT[r],G=linearLUT[g],Bl=linearLUT[b];
   var x=(R*0.4124+G*0.3576+Bl*0.1805)/0.95047;
   var y=(R*0.2126+G*0.7152+Bl*0.0722);
@@ -636,7 +638,7 @@ function rgbToLab(r,g,b,out,o){
   x=x>0.008856?Math.cbrt(x):7.787*x+0.137931;
   y=y>0.008856?Math.cbrt(y):7.787*y+0.137931;
   z=z>0.008856?Math.cbrt(z):7.787*z+0.137931;
-  out[o]=116*y-16;out[o+1]=500*(x-y);out[o+2]=200*(y-z);
+  out[off]=116*y-16;out[off+1]=500*(x-y);out[off+2]=200*(y-z);
 }
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 
@@ -783,9 +785,9 @@ function posterizeAlpha(d,n4){
 
 /* ---------- quantization: histogram k-means (Lab, k-means++ seed) ---------- */
 function quantize(d,N,k,dither,iters){
-  var n4=N*N*4;
+  var rgbaLen=N*N*4;
   var uniq=new Map(),over=false;
-  for(var i=0;i<n4;i+=4){
+  for(var i=0;i<rgbaLen;i+=4){
     if(d[i+3]<8)continue;
     var key=d[i]*65536+d[i+1]*256+d[i+2];
     if(!uniq.has(key)){if(uniq.size>=4096){over=true;break}uniq.set(key,1);}
@@ -796,7 +798,7 @@ function quantize(d,N,k,dither,iters){
   }
   /* 5-bit histogram */
   var hw=new Float64Array(32768),hr=new Float64Array(32768),hg=new Float64Array(32768),hb=new Float64Array(32768);
-  for(var i2=0;i2<n4;i2+=4){
+  for(var i2=0;i2<rgbaLen;i2+=4){
     var a=d[i2+3];if(a<8)continue;var w=a/255;
     var bk=((d[i2]>>3)<<10)|((d[i2+1]>>3)<<5)|(d[i2+2]>>3);
     hw[bk]+=w;hr[bk]+=d[i2]*w;hg[bk]+=d[i2+1]*w;hb[bk]+=d[i2+2]*w;
@@ -811,17 +813,17 @@ function quantize(d,N,k,dither,iters){
     brgb[j*3]=r;brgb[j*3+1]=g;brgb[j*3+2]=bl;bw[j]=w2;
     rgbToLab(clamp(r|0,0,255),clamp(g|0,0,255),clamp(bl|0,0,255),blab,j*3);
   }
-  var K=Math.min(k,m);
+  var paletteSize=Math.min(k,m);
   var QC=TUNING.qChroma;   /* hoisted out of the four distance loops below */
   /* k-means++ */
   var rng=mulberry32(7);
-  var cen=new Float32Array(K*3),cenRGB=new Float32Array(K*3);
+  var cen=new Float32Array(paletteSize*3),cenRGB=new Float32Array(paletteSize*3);
   var dist=new Float64Array(m);
   var first=0,bestw=-1;
   for(var j2=0;j2<m;j2++)if(bw[j2]>bestw){bestw=bw[j2];first=j2;}
   cen.set(blab.subarray(first*3,first*3+3),0);cenRGB.set(brgb.subarray(first*3,first*3+3),0);
   for(var j3=0;j3<m;j3++){var dl=blab[j3*3]-cen[0],da=blab[j3*3+1]-cen[1],db=blab[j3*3+2]-cen[2];dist[j3]=(dl*dl+QC*(da*da+db*db))*bw[j3];}
-  for(var c=1;c<K;c++){
+  for(var c=1;c<paletteSize;c++){
     var tot=0;for(var j4=0;j4<m;j4++)tot+=dist[j4];
     var pickv=rng()*tot,acc=0,pick=m-1;
     for(var j5=0;j5<m;j5++){acc+=dist[j5];if(acc>=pickv){pick=j5;break}}
@@ -838,7 +840,7 @@ function quantize(d,N,k,dither,iters){
     var moved=false;
     for(var j7=0;j7<m;j7++){
       var bi=0,bd=1e18;
-      for(var c2=0;c2<K;c2++){
+      for(var c2=0;c2<paletteSize;c2++){
         var dl3=blab[j7*3]-cen[c2*3],da3=blab[j7*3+1]-cen[c2*3+1],db3=blab[j7*3+2]-cen[c2*3+2];
         var dd2=dl3*dl3+QC*(da3*da3+db3*db3);
         if(dd2<bd){bd=dd2;bi=c2;}
@@ -846,19 +848,19 @@ function quantize(d,N,k,dither,iters){
       if(asg[j7]!==bi){asg[j7]=bi;moved=true;}
     }
     if(!moved&&it>0)break;
-    var sw=new Float64Array(K),sl=new Float64Array(K*3),sr=new Float64Array(K*3);
+    var sw=new Float64Array(paletteSize),sl=new Float64Array(paletteSize*3),sr=new Float64Array(paletteSize*3);
     for(var j8=0;j8<m;j8++){
       var a2=asg[j8],w3=bw[j8];sw[a2]+=w3;
       sl[a2*3]+=blab[j8*3]*w3;sl[a2*3+1]+=blab[j8*3+1]*w3;sl[a2*3+2]+=blab[j8*3+2]*w3;
       sr[a2*3]+=brgb[j8*3]*w3;sr[a2*3+1]+=brgb[j8*3+1]*w3;sr[a2*3+2]+=brgb[j8*3+2]*w3;
     }
-    for(var c3=0;c3<K;c3++)if(sw[c3]>0){
+    for(var c3=0;c3<paletteSize;c3++)if(sw[c3]>0){
       cen[c3*3]=sl[c3*3]/sw[c3];cen[c3*3+1]=sl[c3*3+1]/sw[c3];cen[c3*3+2]=sl[c3*3+2]/sw[c3];
       cenRGB[c3*3]=sr[c3*3]/sw[c3];cenRGB[c3*3+1]=sr[c3*3+1]/sw[c3];cenRGB[c3*3+2]=sr[c3*3+2]/sw[c3];
     }
   }
-  var pal=[],palLab=new Float32Array(K*3);
-  for(var c4=0;c4<K;c4++){
+  var pal=[],palLab=new Float32Array(paletteSize*3);
+  for(var c4=0;c4<paletteSize;c4++){
     var pr=clamp(Math.round(cenRGB[c4*3]),0,255),pg=clamp(Math.round(cenRGB[c4*3+1]),0,255),pb=clamp(Math.round(cenRGB[c4*3+2]),0,255);
     pal.push([pr,pg,pb]);rgbToLab(pr,pg,pb,palLab,c4*3);
   }
@@ -868,7 +870,7 @@ function quantize(d,N,k,dither,iters){
     if(hit!==undefined)return hit;
     rgbToLab(r,g,b,tmp3,0);
     var bi=0,bd=1e18;
-    for(var c5=0;c5<K;c5++){
+    for(var c5=0;c5<paletteSize;c5++){
       var dl4=tmp3[0]-palLab[c5*3],da4=tmp3[1]-palLab[c5*3+1],db4=tmp3[2]-palLab[c5*3+2];
       var dd3=dl4*dl4+QC*(da4*da4+db4*db4);
       if(dd3<bd){bd=dd3;bi=c5;}
@@ -901,7 +903,7 @@ function quantize(d,N,k,dither,iters){
       er=next;
     }
   }else{
-    for(var i4=0;i4<n4;i4+=4){
+    for(var i4=0;i4<rgbaLen;i4+=4){
       if(d[i4+3]<8)continue;
       var pc2=pal[nearest(d[i4],d[i4+1],d[i4+2])];
       d[i4]=pc2[0];d[i4+1]=pc2[1];d[i4+2]=pc2[2];
@@ -914,10 +916,10 @@ function quantize(d,N,k,dither,iters){
    axis 0: horizontal strips (rows), 1: vertical strips (columns). */
 function encodePixelStrips(d,N,axis,opt){
   opt=opt||{};
-  var P=opt.precision!=null?opt.precision:ENGINE_DEFAULTS.precision;
-  var OV=opt.overlap!=null?opt.overlap:ENGINE_DEFAULTS.overlap;
+  var prec=opt.precision!=null?opt.precision:ENGINE_DEFAULTS.precision;
+  var overlap=opt.overlap!=null?opt.overlap:ENGINE_DEFAULTS.overlap;
   var stepL=axis===0?N*4:4, stepI=axis===0?4:N*4;
-  var groups=[]; /* {l0,span,solid,stops,model,sig,dom} */
+  var groups=[]; /* {l0,span,solid,stops,model,sig,domColor} */
   var anchorGi=-1,anchorSig=null;
 
   for(var l=0;l<N;l++){
@@ -926,7 +928,7 @@ function encodePixelStrips(d,N,axis,opt){
     for(var i=0;i<N;i++)if(d[base+i*stepI+3]>0){vis=true;break}
     if(!vis){anchorGi=-1;continue}
 
-    var stops=null,model=null,solid=null,sig="",dom=null;
+    var stops=null,model=null,solid=null,sig="",domColor=null;
     var runs=[],cur=-1;
     for(var i2=0;i2<N;i2++){
       var o=base+i2*stepI;
@@ -937,7 +939,7 @@ function encodePixelStrips(d,N,axis,opt){
     var domLen=-1;
     for(var ri=0;ri<runs.length;ri++){
       var len=(ri+1<runs.length?runs[ri+1][0]:N)-runs[ri][0];
-      if(runs[ri][4]>0&&len>domLen){domLen=len;dom=[runs[ri][1],runs[ri][2],runs[ri][3]];}
+      if(runs[ri][4]>0&&len>domLen){domLen=len;domColor=[runs[ri][1],runs[ri][2],runs[ri][3]];}
     }
     if(runs.length===1){
       var R0=runs[0];solid=[R0[1],R0[2],R0[3],R0[4]];sig="S"+cur;
@@ -945,7 +947,7 @@ function encodePixelStrips(d,N,axis,opt){
     }else{
       stops=[];model=[];
       for(var j=1;j<runs.length;j++){
-        var t=formatNum(runs[j][0]/N,P),A=runs[j-1],Bx=runs[j];
+        var t=formatNum(runs[j][0]/N,prec),A=runs[j-1],Bx=runs[j];
         stops.push([t,A[1],A[2],A[3],A[4]]);
         stops.push([t,Bx[1],Bx[2],Bx[3],Bx[4]]);
       }
@@ -958,11 +960,11 @@ function encodePixelStrips(d,N,axis,opt){
     /* span merge: adjacent identical strips become one taller layer */
     var merged=(anchorGi>=0&&groups[anchorGi].l0+groups[anchorGi].span===l&&anchorSig===sig);
     if(merged){groups[anchorGi].span++;continue}
-    groups.push({l0:l,span:1,solid:solid,stops:stops,model:model,sig:sig,dom:dom});
+    groups.push({l0:l,span:1,solid:solid,stops:stops,model:model,sig:sig,domColor:domColor});
     anchorGi=groups.length-1;anchorSig=sig;
   }
 
-  return serializeStrips(groups,N,axis,P,OV,"strip");
+  return serializeStrips(groups,N,axis,prec,overlap,"strip");
 }
 /* deterministic non-cryptographic 64-bit hash: two decorrelated 32-bit lanes, base36, each padded to a
    fixed width so the halves can never alias. sole use is deriving a per-emblem id prefix. */
@@ -982,13 +984,13 @@ function hash64(s){
 function emblemIdPrefix(groups,axis){
   var s=""+axis,i,g;
   for(i=0;i<groups.length;i++){g=groups[i];s+=";"+g.l0+","+g.span+","+g.sig;}
-  return "g"+hash64(s).slice(0,3);   /* 3 hash chars (36^3 prefixes) keep cross-emblem ids apart at a fraction of the bytes */
+  return "g"+hash64(s).slice(0,4);   /* 4 hash chars = 1.7M prefixes. a collision would make a second emblem on the same page resolve url(#id) to the first one's gradient, so it is worth a byte: at 10 emblems the odds fall from 1 in 1000 to 1 in 30000, for ~512 bytes on a 1.25MB budget. */
 }
 /* shared strip emission: turn strip groups into the accepted svg + min/full layer JSON. one source for
    both the hard-run and piecewise-linear encoders, so the two stay byte-identical in every format detail
    (gradient dedup, 6-digit hex, leading-zero decimals, matrix precision). kind ("strip" | "strip-pl")
    suffixes the method label; g.stops holds coincident pairs for hard steps, distinct offsets for smooth ramps. */
-function serializeStrips(groups,N,axis,P,OV,kind){
+function serializeStrips(groups,N,axis,prec,overlap,kind){
   var h=EMBLEM/N;
   var defs="",paths="",gm=new Map(),idp=emblemIdPrefix(groups,axis);   /* content-hashed prefix: keeps this emblem's gradient ids from colliding with other emblems' on a shared page */
   var Lmin=/** @type {Layer[]} */([backgroundLayer]),Lfull=/** @type {Layer[]} */([backgroundLayer]);
@@ -998,15 +1000,15 @@ function serializeStrips(groups,N,axis,P,OV,kind){
     var tx,ty,aS,dS;
     /* seam guard: the host rescales the emblem to arbitrary sizes, so strip edges land on fractional
        pixels and its non-conflating renderer leaks the backing through as seams. extend each strip into
-       the next by OV units (the Overlap control) where an adjacent strip follows, capped at the
+       the next by overlap units (the Overlap control) where an adjacent strip follows, capped at the
        contiguous opaque run below so nothing bleeds into a gap or past the edge. rasterizeStrips ignores
        this, so candidate selection is unchanged. */
     var OVeff=0;
     if(g.a1!=null){OVeff=g.ov||0;}   /* PL gap-split segment: overlap precomputed per-segment against the source (PASS 3 of encodeSmoothStrips) */
-    else if(OV>0&&gi+1<groups.length&&groups[gi+1].l0===g.l0+g.span){
+    else if(overlap>0&&gi+1<groups.length&&groups[gi+1].l0===g.l0+g.span){
       var runEnd=g.l0+g.span;
       for(var gj=gi+1;gj<groups.length&&groups[gj].l0===runEnd;gj++)runEnd=groups[gj].l0+groups[gj].span;
-      OVeff=Math.min(OV,(runEnd-(g.l0+g.span))*h);
+      OVeff=Math.min(overlap,(runEnd-(g.l0+g.span))*h);
     }
     var aLen=g.a1!=null?g.a1-g.a0:EMBLEM,aPos=g.a1!=null?g.a0:0;   /* along-axis extent: a partial segment for PL gap-split, full width for hard-run (a1 unset => byte-identical) */
     if(axis===0){tx=aPos;ty=g.l0*h;aS=aLen/SLUG_W;dS=(h*g.span+OVeff)/SLUG_H;}
@@ -1021,7 +1023,8 @@ function serializeStrips(groups,N,axis,P,OV,kind){
       var stopsStr="",stC='/>';   /* both encoders self-close (host-accepted); smaller than the verbose </stop> form. PL gap-split and hard-run coincident pairs emit the same way. */
       for(var si=0;si<g.stops.length;si++){
         var st=g.stops[si];
-        var off=(si===0&&(st[0]===0||st[0]==="0"))?"":' offset="'+st[0]+'"';   /* svg defaults the first stop to offset 0, so it can be left out */
+        var inferred=si===0?"0":String(g.stops[si-1][0]);   /* an absent offset reads as 0 and is then clamped up to the largest offset already seen, so leaving it out states exactly this value */
+        var off=String(st[0])===inferred?"":' offset="'+st[0]+'"';   /* free on the first stop, and on the second of every coincident pair - which is every run boundary the hard-run encoder writes, about a sixth of the payload. host-verified. */
         stopsStr+='<stop'+off+' stop-color="'+rgbToHex(st[1],st[2],st[3])+'"'+(st[4]<255?' stop-opacity="'+formatNum(st[4]/255,3)+'"':'')+stC;
       }
       totalStops+=g.stops.length;
@@ -1032,12 +1035,12 @@ function serializeStrips(groups,N,axis,P,OV,kind){
         defs+='<linearGradient id="'+gid+'"'+(axis===0?'':' x2="0" y2="1"')+'>'+stopsStr+'</linearGradient>';
       }
       fill='fill="url(#'+gid+')"';
-      layerColor=g.dom?rgbToHex(g.dom[0],g.dom[1],g.dom[2]):rgbToHex(g.stops[0][1],g.stops[0][2],g.stops[0][3]);
+      layerColor=g.domColor?rgbToHex(g.domColor[0],g.domColor[1],g.domColor[2]):rgbToHex(g.stops[0][1],g.stops[0][2],g.stops[0][3]);
     }
-    var mtx='matrix('+formatNum(aS,P)+',0,0,'+formatNum(dS,Math.max(4,P))+','+formatNum(tx,P)+','+formatNum(ty,P)+')';
+    var mtx='matrix('+formatNum(aS,prec)+',0,0,'+formatNum(dS,Math.max(4,prec))+','+formatNum(tx,prec)+','+formatNum(ty,prec)+')';
     paths+='<path '+fill+' d="'+SLUG+'" transform="'+mtx+'"/>';
     idx++;
-    var sx=Math.max(1,roundTo(aS*100,P)),sy=Math.max(1,roundTo(dS*100,P)),lx=roundTo(tx,P),ly=roundTo(ty,P);
+    var sx=Math.max(1,roundTo(aS*100,prec)),sy=Math.max(1,roundTo(dS*100,prec)),lx=roundTo(tx,prec),ly=roundTo(ty,prec);
     Lmin.push({x:lx,y:ly,scaleX:sx,scaleY:sy,color:layerColor});   /* minimal layer: the server infers id, slug, type and index from array order -> much smaller layerData, same render. Lfull is the explicit fallback. */
     Lfull.push({id:"e"+idx,name:"21",type:"path",y:ly,x:lx,scaleY:sy,scaleX:sx,invertedY:0,invertedX:0,rotation:0,opacity:100,index:idx,color:layerColor,isFilled:1,internal:0,locked:0,tBold:0,tItalic:0,fontFamily:null,borderColor:"#0",borderSize:0,gradientStyle:"Fill",slug:"rectangles/21",width:66.47,height:300});
   }
@@ -1145,8 +1148,8 @@ function contrastRecover(row,a0,len,knots,cols){
    wins on gradient/photographic content; flat/graphic logos prefer hard-run (the RD search picks it). */
 function encodeSmoothStrips(d,N,axis,opt){
   opt=opt||{};
-  var P=opt.precision!=null?opt.precision:ENGINE_DEFAULTS.precision;
-  var OV=opt.overlap!=null?opt.overlap:ENGINE_DEFAULTS.overlap;
+  var prec=opt.precision!=null?opt.precision:ENGINE_DEFAULTS.precision;
+  var overlap=opt.overlap!=null?opt.overlap:ENGINE_DEFAULTS.overlap;
   var tol=opt.tol!=null?opt.tol:90;   /* per-row L2 error budget (fitStops) */
   /* asymmetric resolution: N is the strip count (cross-axis); the gradient axis is fit at the source's
      full resolution S=sqrt(pixels). when S>N (the app feeds the full 512 source) each strip's gradient
@@ -1181,7 +1184,7 @@ function encodeSmoothStrips(d,N,axis,opt){
     for(var mi=0;mi<seg.length;mi++){
       var a0=seg[mi][0],a1=seg[mi][1],len=a1-a0,b0=a0<<2,allSame=true;
       for(var ia=a0+1;ia<a1;ia++){var oa=ia<<2;if(row[oa]!==row[b0]||row[oa+1]!==row[b0+1]||row[oa+2]!==row[b0+2]||row[oa+3]!==row[b0+3]){allSame=false;break}}
-      var stops=null,model=null,solid=null,sig="",dom=null;
+      var stops=null,model=null,solid=null,sig="",domColor=null;
       if(allSame){
         solid=[row[b0],row[b0+1],row[b0+2],row[b0+3]];sig="S"+(((solid[0]*256+solid[1])*256+solid[2])*256+solid[3]);
         model=[[0,solid[0],solid[1],solid[2],solid[3]]];
@@ -1193,14 +1196,14 @@ function encodeSmoothStrips(d,N,axis,opt){
         stops=[];model=[];
         for(var jv=0;jv<v.length;jv++){
           var vi=v[jv],ov=(a0+vi)<<2,cc=cols[jv];
-          var t=jv===v.length-1?"1":formatNum(vi/len,P);
+          var t=jv===0?"0":(jv===v.length-1?"1":formatNum((vi+0.5)/len,prec));   /* a knot describes sample vi, whose centre lies half a sample in, so vi/len lands the gradient on the sample's left edge instead - half a pixel of misregistration on every interior knot. the two end knots stay pinned: the gradient is clamped outside them either way, so moving them shifts one sample each and costs the offset attribute. */
           stops.push([t,cc[0],cc[1],cc[2],row[ov+3]]);        /* colour from LS, alpha from the pixel */
           model.push([parseFloat(t),cc[0],cc[1],cc[2],row[ov+3]]);
         }
         sig=(axis===0?"h":"v")+stops.join("|");
-        var mo=(a0+(len>>1))<<2;dom=[row[mo],row[mo+1],row[mo+2]];
+        var mo=(a0+(len>>1))<<2;domColor=[row[mo],row[mo+1],row[mo+2]];
       }
-      sl.push({a0:a0,a1:a1,solid:solid,stops:stops,model:model,sig:sig,dom:dom});
+      sl.push({a0:a0,a1:a1,solid:solid,stops:stops,model:model,sig:sig,domColor:domColor});
     }
     strips[l]=sl;
   }
@@ -1213,23 +1216,23 @@ function encodeSmoothStrips(d,N,axis,opt){
       var sg=ss[k2],key=sg.a0+"_"+sg.a1+"_"+sg.sig;seen[key]=1;
       var og=open[key];
       if(og!==undefined&&groups[og].l0+groups[og].span===l2)groups[og].span++;
-      else{groups.push({l0:l2,span:1,a0:sg.a0,a1:sg.a1,ov:0,solid:sg.solid,stops:sg.stops,model:sg.model,sig:sg.sig,dom:sg.dom});open[key]=groups.length-1;}
+      else{groups.push({l0:l2,span:1,a0:sg.a0,a1:sg.a1,ov:0,solid:sg.solid,stops:sg.stops,model:sg.model,sig:sg.sig,domColor:sg.domColor});open[key]=groups.length-1;}
     }
     for(var kk in open){if(groups[open[kk]].l0+groups[open[kk]].span!==l2+1)delete open[kk];}
   }
   /* PASS 3 - per-segment seam overlap: extend a segment down while the strips below still cover its
-     midpoint (capped at OV). computed here, not in serializeStrips, because it needs source coverage per segment. */
+     midpoint (capped at overlap). computed here, not in serializeStrips, because it needs source coverage per segment. */
   var hh=EMBLEM/N;
   for(var g3=0;g3<groups.length;g3++){
     var gg3=groups[g3],mid=(gg3.a0+gg3.a1)>>1,cnt=0;
-    if(OV>0)for(var cc3=gg3.l0+gg3.span;cc3<N;cc3++){
+    if(overlap>0)for(var cc3=gg3.l0+gg3.span;cc3<N;cc3++){
       var cov=false,slb=strips[cc3];
       for(var sbi=0;sbi<slb.length;sbi++){if(slb[sbi].a0<=mid&&mid<slb[sbi].a1){cov=true;break}}
-      if(!cov)break;cnt++;if(cnt*hh>=OV)break;
+      if(!cov)break;cnt++;if(cnt*hh>=overlap)break;
     }
-    gg3.ov=Math.min(OV,cnt*hh);
+    gg3.ov=Math.min(overlap,cnt*hh);
   }
-  return serializeStrips(groups,N,axis,P,OV,"strip-pl");
+  return serializeStrips(groups,N,axis,prec,overlap,"strip-pl");
 }
 /* piecewise-linear candidate pair (one per allowed axis), same shape as buildPixelCandidates. */
 function buildSmoothCandidates(im,N,method,tol,o){
@@ -1288,8 +1291,9 @@ function rasterizeStrips(cand,N){
    adjacent strips cover DISJOINT parts of a pixel, so their contributions are SUMMED, not
    source-over composited; groups are walked back to front and each takes min(coverage, remaining),
    which preserves painter order where the seam overlap makes two strips claim the same area. */
-var _covC=null,_covA=null,_covR=null,_covOut=null,_covLine=null;   /* one 512-grid allocation, reused: the search measures thousands of candidates */
-var _ssCa=null,_ssCb=null,_ssCaa=null,_ssCbb=null,_ssCab=null;   /* sliding column sums for the overlapping SSIM window, likewise reused */
+var _covColor=null,_covAlpha=null,_covRemain=null,_covOut=null,_covLine=null;   /* one 512-grid allocation, reused: the search measures thousands of candidates */
+var _colSumA=null,_colSumB=null,_colSumAA=null,_colSumBB=null,_colSumAB=null;   /* likewise reused: sliding these down and across is what holds the overlapping window at O(1) */
+var _lumaA=null,_lumaB=null;   /* the composited luma pair both SSIM windows read */
 function sampleModel(g,n,t0,tw){
   var line=_covLine,i,p;
   if(g.solid){
@@ -1314,18 +1318,18 @@ function sampleModel(g,n,t0,tw){
 }
 function renderCoverage(cand,S){
   var N=cand.N,axis=cand.axis,h=S/N,px=S*S,groups=cand.groups,i;
-  if(!_covR||_covR.length!==px){_covC=new Float32Array(px*3);_covA=new Float32Array(px);_covR=new Float32Array(px);_covOut=new Uint8ClampedArray(px*4);_covLine=new Float32Array(S*4);}
-  var C=_covC,A=_covA,R=_covR,out=_covOut;
-  C.fill(0);A.fill(0);R.fill(1);
+  if(!_covRemain||_covRemain.length!==px){_covColor=new Float32Array(px*3);_covAlpha=new Float32Array(px);_covRemain=new Float32Array(px);_covOut=new Uint8ClampedArray(px*4);_covLine=new Float32Array(S*4);}
+  var col=_covColor,alpha=_covAlpha,remain=_covRemain,out=_covOut;
+  col.fill(0);alpha.fill(0);remain.fill(1);
   for(var gi=groups.length-1;gi>=0;gi--){
     var g=groups[gi];
     var a0=g.a1!=null?g.a0:0,a1=g.a1!=null?g.a1:S,alen=a1-a0;   /* PL segment, or the whole line for a hard-run group */
     if(alen<=0)continue;
-    /* the slug path is SLUG_PW wide but is scaled by the declared SLUG_W, so whichever extent that
-       scale drives comes out SLUG_PW/SLUG_W short. along the long axis that is a ~0.25px strip of
+    /* the slug path is SLUG_FILL_W wide but is scaled by the declared SLUG_W, so whichever extent that
+       scale drives comes out SLUG_FILL_W/SLUG_W short. along the long axis that is a ~0.25px strip of
        background down the far edge, which a real rasterizer shows and the score must see. */
     var aS=alen/SLUG_W;
-    var t0=axis===0?SLUG_BX0*aS:0,tw=axis===0?SLUG_BBW*aS:alen;   /* the gradient spans the path's bbox, which is wider than its fill on the x axis */
+    var t0=axis===0?SLUG_BBOX_X0*aS:0,tw=axis===0?SLUG_BBOX_W*aS:alen;   /* the gradient spans the path's bbox, which is wider than its fill on the x axis */
     var line=sampleModel(g,alen,t0,tw);
     var y0=g.l0*h,y1=y0+h*g.span;   /* the rect's true fractional cross-axis extent */
     var c0=Math.floor(y0),c1=Math.ceil(y1);
@@ -1336,50 +1340,60 @@ function renderCoverage(cand,S){
       if(cov<=0)continue;
       var p=axis===0?(c*S+a0):(a0*S+c);   /* the axis only decides where the run starts and how it strides */
       for(i=0;i<nmax;i++,p+=pstep){
-        var rp=R[p];
+        var rp=remain[p];
         if(rp<=0)continue;
         var take=cov<rp?cov:rp,q=i<<2,sa=take*(line[q+3]*(1/255)),p3=p*3;
-        C[p3]+=line[q]*sa;C[p3+1]+=line[q+1]*sa;C[p3+2]+=line[q+2]*sa;
-        A[p]+=sa;R[p]=rp-take;
+        col[p3]+=line[q]*sa;col[p3+1]+=line[q+1]*sa;col[p3+2]+=line[q+2]*sa;
+        alpha[p]+=sa;remain[p]=rp-take;
       }
     }
   }
   for(i=0;i<px;i++){
-    var a=A[i],o=i<<2;
-    if(a>0){var i3=i*3;out[o]=C[i3]/a;out[o+1]=C[i3+1]/a;out[o+2]=C[i3+2]/a;out[o+3]=a*255;}
+    var a=alpha[i],o=i<<2;
+    if(a>0){var i3=i*3;out[o]=col[i3]/a;out[o+1]=col[i3+1]/a;out[o+2]=col[i3+2]/a;out[o+3]=a*255;}
     else{out[o]=0;out[o+1]=0;out[o+2]=0;out[o+3]=0;}
   }
   return out;
 }
 /* fidelity: composite over gray, then PSNR + windowed SSIM on luma. SSIM tracks structure/edges
-   better than PSNR (which is dominated by flat regions). one rasterization feeds both. */
-function measureVsRef(cand,N,ref,S){
-  var img=renderCoverage(cand,S);N=S;   /* measured on the true 512 grid, so the sampling below is the identity */
-  var G=127;
-  var A=new Float32Array(S*S), B=new Float32Array(S*S);
-  var se=0,cnt=0;
-  for(var Y=0;Y<S;Y++){
-    var sy=(Y*N/S)|0,rowR=Y*S,rowI=sy*N;
-    for(var X=0;X<S;X++){
-      var sx=(X*N/S)|0;
-      var pr=(rowR+X)<<2,pi=(rowI+sx)<<2;
-      var ar=ref[pr+3]/255, ai=img[pi+3]/255;
-      var rr=ref[pr]*ar+G*(1-ar), rg=ref[pr+1]*ar+G*(1-ar), rb=ref[pr+2]*ar+G*(1-ar);
-      var ir=img[pi]*ai+G*(1-ai), ig=img[pi+1]*ai+G*(1-ai), ib=img[pi+2]*ai+G*(1-ai);
-      A[Y*S+X]=0.2126*rr+0.7152*rg+0.0722*rb;   /* BT.709: the luma weights sRGB is defined against */
-      B[Y*S+X]=0.2126*ir+0.7152*ig+0.0722*ib;
-      var dr=rr-ir,dg=rg-ig,db=rb-ib; se+=dr*dr+dg*dg+db*db; cnt+=3;
-    }
+   better than PSNR (which is dominated by flat regions). one rasterization feeds both.
+
+   there are two SSIM windows here on purpose, and only one of them ever leaves the engine:
+
+   - ssimCanonical is the definition everyone else uses (gaussian, sigma 1.5), so the number shown in
+     the app, plotted in the benchmark lab and published in the comparison is the number an outside
+     tool reproduces. it costs ~33x the proxy, which is nothing once per finished job.
+   - ssimProxy is a sliding box, cheap enough for the thousands of measurements a sweep makes. its
+     only job is to rank candidates the way the canonical metric would: at a 20px window it agrees
+     with it on 99.4% of candidate pairs (an 8px window agrees on 96.1%), and both cost the same
+     because the sliding sums make the window size free.
+
+   so the search is fast and the reported fidelity is standard, with no third number anywhere. */
+/* one render + one luma pass, shared by both windows below. transparent areas are composited over a
+   neutral grey so a gap is scored as a visible difference rather than silently matching anything. */
+function lumaPair(cand,ref,S){
+  var img=renderCoverage(cand,S),G=127,px=S*S,i;
+  if(!_lumaA||_lumaA.length!==px){_lumaA=new Float32Array(px);_lumaB=new Float32Array(px);}
+  var A=_lumaA,B=_lumaB,se=0;
+  for(i=0;i<px;i++){                       /* the coverage render is already on the reference grid, so this is 1:1 */
+    var p=i<<2,ar=ref[p+3]/255,ai=img[p+3]/255;
+    var rr=ref[p]*ar+G*(1-ar),rg=ref[p+1]*ar+G*(1-ar),rb=ref[p+2]*ar+G*(1-ar);
+    var ir=img[p]*ai+G*(1-ai),ig=img[p+1]*ai+G*(1-ai),ib=img[p+2]*ai+G*(1-ai);
+    A[i]=0.2126*rr+0.7152*rg+0.0722*rb;   /* BT.709: the luma weights sRGB is defined against */
+    B[i]=0.2126*ir+0.7152*ig+0.0722*ib;
+    var dr=rr-ir,dg=rg-ig,db=rb-ib;se+=dr*dr+dg*dg+db*db;
   }
-  var psnr=cnt?(se/cnt<=0.0001?99:10*Math.log10(65025/(se/cnt))):99;
-  /* SSIM over FULLY OVERLAPPING 8x8 windows (stride 1), held to O(1) per window by sliding the column
-     sums down and across. a non-overlapping block grid is cheaper but ranks candidates differently
-     from standard SSIM - structure that straddles a block seam is scored by no window at all - and it
-     was measurably picking worse emblems. sliding costs ~1.3ms more per measurement. */
-  var win=8,C1=6.5025,C2=58.5225,nwin=win*win,P=S-win+1,ssum=0,wcnt=0,wx,wy;
-  if(!_ssCa||_ssCa.length!==S){_ssCa=new Float64Array(S);_ssCb=new Float64Array(S);_ssCaa=new Float64Array(S);_ssCbb=new Float64Array(S);_ssCab=new Float64Array(S);}
-  var ca=_ssCa,cb=_ssCb,caa=_ssCaa,cbb=_ssCbb,cab=_ssCab;
-  for(var by=0;by<P;by++){
+  var mse=se/(px*3);
+  return mse<=0.0001?99:10*Math.log10(65025/mse);
+}
+/* the search proxy: SSIM over fully overlapping windows, held to O(1) per window by sliding the column
+   sums down and across. a non-overlapping block grid is cheaper still but ranks candidates differently
+   from the canonical metric, because structure landing on a block seam is scored by no window at all. */
+function ssimProxy(A,B,S){
+  var win=TUNING.ssimWin,C1=6.5025,C2=58.5225,nwin=win*win,winPos=S-win+1,ssum=0,wcnt=0,wx,wy;
+  if(!_colSumA||_colSumA.length!==S){_colSumA=new Float64Array(S);_colSumB=new Float64Array(S);_colSumAA=new Float64Array(S);_colSumBB=new Float64Array(S);_colSumAB=new Float64Array(S);}
+  var ca=_colSumA,cb=_colSumB,caa=_colSumAA,cbb=_colSumBB,cab=_colSumAB;
+  for(var by=0;by<winPos;by++){
     if(by===0){
       ca.fill(0);cb.fill(0);caa.fill(0);cbb.fill(0);cab.fill(0);
       for(wy=0;wy<win;wy++){var rb0=wy*S;for(wx=0;wx<S;wx++){var av=A[rb0+wx],bv=B[rb0+wx];ca[wx]+=av;cb[wx]+=bv;caa[wx]+=av*av;cbb[wx]+=bv*bv;cab[wx]+=av*bv;}}
@@ -1392,14 +1406,75 @@ function measureVsRef(cand,N,ref,S){
     }
     var wa=0,wb=0,waa=0,wbb=0,wab=0;
     for(wx=0;wx<win;wx++){wa+=ca[wx];wb+=cb[wx];waa+=caa[wx];wbb+=cbb[wx];wab+=cab[wx];}
-    for(var bx=0;bx<P;bx++){
+    for(var bx=0;bx<winPos;bx++){
       if(bx>0){var xo=bx-1,xi=bx-1+win;wa+=ca[xi]-ca[xo];wb+=cb[xi]-cb[xo];waa+=caa[xi]-caa[xo];wbb+=cbb[xi]-cbb[xo];wab+=cab[xi]-cab[xo];}
       var ma=wa/nwin,mb=wb/nwin,
         va=(waa-nwin*ma*ma)/(nwin-1),vb=(wbb-nwin*mb*mb)/(nwin-1),cov=(wab-nwin*ma*mb)/(nwin-1);
       ssum+=((2*ma*mb+C1)*(2*cov+C2))/((ma*ma+mb*mb+C1)*(va+vb+C2));wcnt++;
     }
   }
-  return {psnr:psnr, ssim: wcnt?ssum/wcnt:1};
+  return wcnt?ssum/wcnt:1;
+}
+function measureVsRef(cand,ref,S){var psnr=lumaPair(cand,ref,S);return {psnr:psnr,ssim:ssimProxy(_lumaA,_lumaB,S)};}
+/* the canonical fidelity: SSIM exactly as it is defined, on the same 512 coverage render and the same
+   BT.709 luma, with a gaussian window (sigma 1.5, truncated at 7px, edges reflected). run once on a
+   finished candidate, never inside the sweep. */
+var _gaussKernel=null,_gaussPass1=null,_meanA=null,_meanB=null,_meanAA=null,_meanBB=null,_meanAB=null,_prodTmp=null;   /* the ssim window\'s local means, reused like the two families above. _prodTmp stages A*A, B*B or A*B before each blur; _gaussPass1 carries the separable pass between axes. */
+function gaussKernel(){
+  if(!_gaussKernel){
+    var R=7,sig=1.5,i,sum=0;
+    _gaussKernel=new Float64Array(2*R+1);
+    for(i=-R;i<=R;i++){_gaussKernel[i+R]=Math.exp(-(i*i)/(2*sig*sig));sum+=_gaussKernel[i+R];}
+    for(i=0;i<_gaussKernel.length;i++)_gaussKernel[i]/=sum;
+  }
+  return _gaussKernel;
+}
+function gaussBlur(src,dst,S){
+  var K=gaussKernel(),R=(K.length-1)>>1,x,y,k,i,acc;   /* self-contained: owns its kernel and scratch, so it is callable on its own */
+  if(!_gaussPass1||_gaussPass1.length!==S*S)_gaussPass1=new Float64Array(S*S);
+  var tmp=_gaussPass1;
+  for(y=0;y<S;y++){
+    var row=y*S;
+    for(x=0;x<S;x++){
+      acc=0;
+      for(k=-R;k<=R;k++){i=x+k;if(i<0)i=-i;else if(i>=S)i=2*S-2-i;acc+=K[k+R]*src[row+i];}
+      tmp[row+x]=acc;
+    }
+  }
+  for(x=0;x<S;x++){
+    for(y=0;y<S;y++){
+      acc=0;
+      for(k=-R;k<=R;k++){i=y+k;if(i<0)i=-i;else if(i>=S)i=2*S-2-i;acc+=K[k+R]*tmp[i*S+x];}
+      dst[y*S+x]=acc;
+    }
+  }
+}
+function ssimCanonical(A,B,S){
+  var px=S*S,i;
+  if(!_meanA||_meanA.length!==px){
+    _meanA=new Float64Array(px);_meanB=new Float64Array(px);
+    _meanAA=new Float64Array(px);_meanBB=new Float64Array(px);_meanAB=new Float64Array(px);_prodTmp=new Float64Array(px);
+  }
+  gaussBlur(A,_meanA,S);gaussBlur(B,_meanB,S);
+  for(i=0;i<px;i++)_prodTmp[i]=A[i]*A[i];gaussBlur(_prodTmp,_meanAA,S);
+  for(i=0;i<px;i++)_prodTmp[i]=B[i]*B[i];gaussBlur(_prodTmp,_meanBB,S);
+  for(i=0;i<px;i++)_prodTmp[i]=A[i]*B[i];gaussBlur(_prodTmp,_meanAB,S);
+  var C1=6.5025,C2=58.5225,sum=0;
+  for(i=0;i<px;i++){
+    var ma=_meanA[i],mb=_meanB[i],va=_meanAA[i]-ma*ma,vb=_meanBB[i]-mb*mb,cov=_meanAB[i]-ma*mb;
+    sum+=((2*ma*mb+C1)*(2*cov+C2))/((ma*ma+mb*mb+C1)*(va+vb+C2));
+  }
+  /* released rather than pooled: this runs once per finished job, and holding 14MB of doubles per
+     worker for the rest of the session costs far more than re-allocating them next time. */
+  _gaussPass1=_meanA=_meanB=_meanAA=_meanBB=_meanAB=_prodTmp=null;   /* the kernel is tiny and stays */
+  return sum/px;
+}
+/* every candidate that leaves the engine is measured this way, including the over-budget ones a lean
+   sweep returns: the benchmark lab plots those on the same axis as the fitting ones, and a chart that
+   mixed two metrics would be worse than the ~80ms this costs per finished job. */
+function measureCanonical(cand,ref,S){
+  var psnr=lumaPair(cand,ref,S);   /* same render and luma as the proxy path; only the window differs */
+  return {psnr:psnr, ssim:ssimCanonical(_lumaA,_lumaB,S)};
 }
 
 /* ---------- pipeline / auto-fit ---------- */
@@ -1416,7 +1491,7 @@ function buildPixelCandidates(im,N,method,o){
   if(method==="auto"||method==="cols")cands.push(encodePixelStrips(im,N,1,so));
   return cands;
 }
-function leanest(cands){
+function smallestCandidate(cands){
   var best=null;
   for(var i=0;i<cands.length;i++)if(cands[i]&&(!best||cands[i].enc<best.enc))best=cands[i];
   return best;
@@ -1464,7 +1539,7 @@ function hardenedCopy(buf,len,mode){if(mode!=="hard")return buf;var c=new Uint8C
    the Detail grid (~log2(grid) encodes, not the whole ladder). budget-limited content: the finest-fitting
    Detail is the max-SSIM winner; with headroom it returns the finest that fits. the per-(N,axis) worker
    body; runSweep fans one job out per (resolution,axis). */
-function smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yield_,t0){
+function smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yieldFn,t0){
   var axes=o.method==="rows"?[0]:o.method==="cols"?[1]:[0,1];
   var tolL=o.toleranceLadder||TUNING.toleranceLadder;   /* ascending [toleranceMin..toleranceMax] = the Detail grid, index 0 = finest (most bytes) .. last = coarsest (fewest) */
   var n=tolL.length;
@@ -1475,21 +1550,21 @@ function smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yield_,t0){
   function encodeStep(N,axis,idx,cache){   /* encode+measure one Detail step, memoized per (N,axis) */
     if(cache[idx])return cache[idx];
     var c=/** @type {Candidate} */(encodeSmoothStrips(plim,N,axis,{precision:o.precision,overlap:o.overlap,tol:tolL[idx]}));
-    c.tol=tolL[idx];var m=measureVsRef(c,N,ref,S);c.psnr=m.psnr;c.ssim=m.ssim;c.fits=c.enc<=o.budget;
-    if(!bestAny||c.enc<bestAny.enc)bestAny=c;   /* leanest seen anywhere, for the nothing-fits fallback */
+    c.tol=tolL[idx];var m=measureVsRef(c,ref,S);c.psnr=m.psnr;c.ssim=m.ssim;c.fits=c.enc<=o.budget;
+    if(!bestAny||c.enc<bestAny.enc)bestAny=c;   /* smallestCandidate seen anywhere, for the nothing-fits fallback */
     cache[idx]=c;return c;
   }
   function bestForPair(N,axis){   /* finest-fitting candidate at this (N,axis), or null if even the coarsest overflows */
     var cache={};
-    return yield_().then(function(){return encodeStep(N,axis,n-1,cache);}).then(function(cHi){   /* coarsest = leanest: does anything fit here? */
+    return yieldFn().then(function(){return encodeStep(N,axis,n-1,cache);}).then(function(cHi){   /* coarsest = smallestCandidate: does anything fit here? */
       if(!cHi||cHi.enc>o.budget)return null;
-      return yield_().then(function(){return encodeStep(N,axis,0,cache);}).then(function(cLo){    /* finest = heaviest: does everything fit (headroom)? */
+      return yieldFn().then(function(){return encodeStep(N,axis,0,cache);}).then(function(cLo){    /* finest = heaviest: does everything fit (headroom)? */
         if(cLo.enc<=o.budget)return cLo;
         var lo=0,hi=n-1;   /* enc decreases as idx rises; invariant enc(lo)>budget, enc(hi)<=budget. find the smallest fitting idx = finest Detail that fits. */
         function binarySearch(){
           if(hi-lo<=1)return Promise.resolve(cache[hi]);
           if(cancelled&&cancelled())return Promise.resolve(cache[hi]);
-          return yield_().then(function(){var mid=(lo+hi)>>1;var cM=encodeStep(N,axis,mid,cache);if(cM.enc<=o.budget)hi=mid;else lo=mid;return binarySearch();});
+          return yieldFn().then(function(){var mid=(lo+hi)>>1;var cM=encodeStep(N,axis,mid,cache);if(cM.enc<=o.budget)hi=mid;else lo=mid;return binarySearch();});
         }
         return binarySearch();
       });
@@ -1505,7 +1580,7 @@ function smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yield_,t0){
   }
   return nextPair().then(function(){var res=bestFit||bestAny;if(res)res.fits=res.enc<=o.budget;return res||null;});
 }
-function findBestEncode(ref,S,o,yield_,limitN,cancelled){
+function findBestEncode(ref,S,o,yieldFn,limitN,cancelled){
   return Promise.resolve().then(function(){
     var t0=NOW();
     var pareto=!!o.pareto&&o.autofit&&!limitN;   /* max-SSIM selection over a finer ladder */
@@ -1520,7 +1595,7 @@ function findBestEncode(ref,S,o,yield_,limitN,cancelled){
       if(fam==="pl"){   /* piecewise-linear: fit the smooth pre-quantize signal at full resolution S (no quantize; not subject to the hard-transition prune below, whose bound counts hard steps PL never pays) */
         var plim=smoothSource();
         plim=hardenedCopy(plim,S*S*4,o.alphaMode);
-        var pb=leanest(buildSmoothCandidates(plim,N,o.method,param,o));
+        var pb=smallestCandidate(buildSmoothCandidates(plim,N,o.method,param,o));
         if(pb)pb.tol=param;
         return pb;
       }
@@ -1530,28 +1605,28 @@ function findBestEncode(ref,S,o,yield_,limitN,cancelled){
       var q=quantize(im,N,param,o.dither,o.quantIters);
       if(o.autofit&&!isLast&&TUNING.boundK*minTransitions(im,N)>o.budget*TUNING.budgetPrune)return null; /* hopeless: skip building */
       var cands=buildPixelCandidates(im,N,o.method,o);
-      var best=leanest(cands);
+      var best=smallestCandidate(cands);
       if(best){best.k=q.exact?"exact":param;best.kx=q.pal.length;}   /* kx = actual palette size, so the UI can show a number even when k is "exact" */
       return best;
     };
-    if(pareto&&o.plOn===true)return smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yield_,t0);   /* Auto-smooth: byte size is monotonic in Detail, so binary-search the finest Detail that fits per (N,axis) instead of encoding the whole ladder. See smoothSearch. */
+    if(pareto&&o.plOn===true)return smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yieldFn,t0);   /* Auto-smooth: byte size is monotonic in Detail, so binary-search the finest Detail that fits per (N,axis) instead of encoding the whole ladder. See smoothSearch. */
     function pixelScan(){   /* Auto-optimize, Pixelization: enc is monotonic in k but SSIM is not (the best palette can be a low k on flat content), so scan k ascending and stop at the first overflow (every larger k overflows too). skipping an over-budget k only skips its expensive quantize; it can never be the best-fitting winner. */
       var kA=(o.paletteLadder||TUNING.paletteLadder).slice().sort(function(a,b){return a-b;}),kMin=kA[0];
       var pFit=/** @type {Candidate|null} */(null),pAny=/** @type {Candidate|null} */(null);
       function consider(cand){
         if(!cand)return;
-        if(!pAny||cand.enc<pAny.enc)pAny=cand;   /* leanest seen anywhere, for the nothing-fits fallback */
-        if(cand.enc<=o.budget){var m=measureVsRef(cand,cand.N,ref,S);cand.psnr=m.psnr;cand.ssim=m.ssim;
+        if(!pAny||cand.enc<pAny.enc)pAny=cand;   /* smallestCandidate seen anywhere, for the nothing-fits fallback */
+        if(cand.enc<=o.budget){var m=measureVsRef(cand,ref,S);cand.psnr=m.psnr;cand.ssim=m.ssim;
           if(!pFit||cand.ssim>pFit.ssim+1e-9||(cand.ssim>pFit.ssim-1e-9&&cand.enc<pFit.enc))pFit=cand;}
       }
       var ni=0;
       function scanResolution(N){
-        return yield_().then(function(){consider(tryCandidate(N,kMin,true,"hard",false));}).then(function(){   /* posterized leanest palette first: it fits even when the plain k-min encode overflows */
+        return yieldFn().then(function(){consider(tryCandidate(N,kMin,true,"hard",false));}).then(function(){   /* posterized smallestCandidate palette first: it fits even when the plain k-min encode overflows */
           var i=0;
           function scanColorCount(){
             if(i>=kA.length||(cancelled&&cancelled())||(pFit&&NOW()-t0>TUNING.searchMaxMs))return Promise.resolve();
             var k=kA[i++];
-            return yield_().then(function(){
+            return yieldFn().then(function(){
               var c=tryCandidate(N,k,false,"hard",false);consider(c);
               if(!c||c.enc>o.budget)return Promise.resolve();   /* pruned (bound over budget) or overflow: enc rises with k, so every larger k overflows too - stop this resolution */
               return scanColorCount();
@@ -1564,7 +1639,7 @@ function findBestEncode(ref,S,o,yield_,limitN,cancelled){
         if(ni>=Ns.length||(cancelled&&cancelled()))return Promise.resolve();
         return scanResolution(Ns[ni++]).then(nextResolution);
       }
-      return nextResolution().then(function(){var res=pFit||pAny;if(res){if(res.ssim==null){var mm=measureVsRef(res,res.N,ref,S);res.psnr=mm.psnr;res.ssim=mm.ssim;}res.fits=res.enc<=o.budget;}return res||null;});
+      return nextResolution().then(function(){var res=pFit||pAny;if(res){if(res.ssim==null){var mm=measureVsRef(res,ref,S);res.psnr=mm.psnr;res.ssim=mm.ssim;}res.fits=res.enc<=o.budget;}return res||null;});
     }
     if(pareto)return pixelScan();   /* Auto-smooth returned via smoothSearch above; this covers Auto-pixel. Both manual paths fall through to the small plan below. */
     var k72=Math.max(8,Math.floor(kStart*TUNING.kMidFactor)),k50=Math.max(6,Math.floor(kStart*TUNING.kLowFactor));
@@ -1594,7 +1669,7 @@ function findBestEncode(ref,S,o,yield_,limitN,cancelled){
         if(!best||cand.enc<best.enc)best=cand;
         if(cand.enc<=o.budget){
           if(pareto){   /* score every fitting candidate: richest-k / largest-N is not always best (gradients prefer fewer colours), so no first-fit shortcut */
-            var mc=measureVsRef(cand,cand.N,ref,S);cand.psnr=mc.psnr;cand.ssim=mc.ssim;
+            var mc=measureVsRef(cand,ref,S);cand.psnr=mc.psnr;cand.ssim=mc.ssim;
             if(!bestFit||cand.ssim>bestFit.ssim+1e-9||(cand.ssim>bestFit.ssim-1e-9&&cand.enc<bestFit.enc))bestFit=cand;
             /* the RD optimum for smooth/photographic content is a low-resolution, high-colour point a stall
                counter would exit before reaching, so the sweep runs to the end (bounded by the prune + time cap);
@@ -1604,11 +1679,11 @@ function findBestEncode(ref,S,o,yield_,limitN,cancelled){
         }
       }
       if(!o.autofit)fitted=fitted||cand||best;
-      return yield_().then(function(){return runStep(i+1)});
+      return yieldFn().then(function(){return runStep(i+1)});
     })(0).then(function(){
       var res=(pareto&&bestFit)||fitted||best;
       if(!res)return null;
-      if(res.ssim==null){var m=measureVsRef(res,res.N,ref,S);res.psnr=m.psnr;res.ssim=m.ssim;}
+      if(res.ssim==null){var m=measureVsRef(res,ref,S);res.psnr=m.psnr;res.ssim=m.ssim;}
       /* the Detail grid (toleranceLadder == detailToTolerance(1..detailMax)) is swept directly, so the
          winner sits on an integer Detail step the box can reproduce; the 40-step grid keeps that step
          close under the budget. */
@@ -1617,7 +1692,7 @@ function findBestEncode(ref,S,o,yield_,limitN,cancelled){
     });
   });
 }
-function runEncodeJob(msg,cancelled,yield_){
+function runEncodeJob(msg,cancelled,yieldFn){
   var t0=NOW();
   var o=Object.assign({},ENGINE_DEFAULTS,msg.opts),S=512;
   var ref=new Uint8ClampedArray(msg.raw);
@@ -1625,10 +1700,12 @@ function runEncodeJob(msg,cancelled,yield_){
   if(o.noise>0)addNoise(ref,S,S,o.noise);
   defringe(ref,S,S,6);
   var uniq=countColors(ref,S*S*4,1600);
-  return findBestEncode(ref,S,o,yield_,false,cancelled).then(function(w){
+  return findBestEncode(ref,S,o,yieldFn,false,cancelled).then(function(w){
     if(cancelled())return Promise.reject("cancelled");
     if(!w)return {id:msg.id,ok:false,adj:ref.buffer,ms:NOW()-t0};
     var lean=o.lean&&!w.fits;   /* a lean (parallel-sweep) job drops the heavy strings of an over-budget candidate: something always fits, so an over-budget rung can never win, and its megabyte SVG never crosses the worker boundary. metrics stay, so selection is identical; the rare nothing-fits case re-encodes non-lean. */
+    var fin=measureCanonical(w,ref,S);   /* the sweep ranked with the proxy; what leaves the engine is the canonical number, so the app, the lab and the published comparison all quote the same metric */
+    w.psnr=fin.psnr;w.ssim=fin.ssim;
     return {id:msg.id,ok:true,ms:NOW()-t0,adj:ref.buffer,uniq:uniq,
       res:{svg:lean?"":w.svg,lmin:lean?"":w.lmin,lfull:lean?"":w.lfull,enc:w.enc,encFull:w.encFull,
         count:w.count,stops:w.stops,defs:lean?"":w.defs,method:w.method,
@@ -1644,8 +1721,8 @@ if(typeof document==="undefined"&&typeof self!=="undefined"&&typeof importScript
     if(m.cmd==="cancel"){if(m.gen>(MINGEN[l]||0))MINGEN[l]=m.gen;return;}   /* a newer generation in this lane cancels its older in-flight jobs cooperatively */
     if(m.cmd!=="run")return;
     var cancelled=function(){return (m.gen||0)<(MINGEN[l]||0)};
-    var yield_=function(){return new Promise(function(r){setTimeout(r,0)})};
-    runEncodeJob(m,cancelled,yield_).then(function(res){
+    var yieldFn=function(){return new Promise(function(r){setTimeout(r,0)})};
+    runEncodeJob(m,cancelled,yieldFn).then(function(res){
       if(res&&!cancelled())/** @type {any} */(self).postMessage(res,[res.adj]);
       else self.postMessage({id:m.id,ok:false,cancelled:true});   /* always answer so the pool frees this worker, even when the job was cancelled */
     }).catch(function(err){
@@ -1660,6 +1737,7 @@ if(typeof document==="undefined"&&typeof self!=="undefined"&&typeof importScript
 "use strict";
 (function(){
 /* ===================== APP v4 ===================== */
+var VERSION="1.2.0";   /* stamped into the generated script and the console banner. the header comment at the top of this file carries the same string for anyone reading the source; a test keeps the two from drifting. */
 var $=/** @type {(id:string)=>any} */(function(id){return document.getElementById(id)});
 var commas=function(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".")};
 /** non-null 2D canvas context: throws a clear error instead of letting a downstream call crash if the browser refuses one. @param {HTMLCanvasElement} c @param {CanvasRenderingContext2DSettings} [opts] @returns {CanvasRenderingContext2D} */
@@ -1739,7 +1817,7 @@ var CONTROLS=[
 /**
  * The whole app state. Control keys mirror the CONTROLS table; the rest is meta
  * (source, view, text, transform). JSDoc only - no runtime effect.
- * @typedef {Object} STState
+ * @typedef {Object} AppState
  * @property {HTMLImageElement|HTMLCanvasElement|null} imgEl
  * @property {string} fileName
  * @property {{type:string,data:any}|null} srcData
@@ -1802,7 +1880,7 @@ function modeDefaults(m){var o=/** @type {Object.<string,any>} */({});for(var i=
 /** @returns {Object.<string,any>} */
 function modeSettings(){var o=/** @type {Object.<string,any>} */({});for(var i=0;i<MODE_KEYS.length;i++)o[MODE_KEYS[i]]=cloneValue(/** @type {any} */(appState)[MODE_KEYS[i]]);return o;}
 /** @type {any} */(defaults).altSettings=modeDefaults("advanced");   /* the app opens in Simple, so the parked profile starts at Advanced's defaults */
-var appState=/** @type {STState} */(Object.assign({imgEl:null,fileName:"",srcData:null,inputMode:"image",last:null,cmp:100,sample:null,origURL:null,emblemSvg:""},defaults));
+var appState=/** @type {AppState} */(Object.assign({imgEl:null,fileName:"",srcData:null,inputMode:"image",last:null,cmp:100,sample:null,origURL:null,emblemSvg:""},defaults));
 appState.altSettings=modeDefaults("advanced");   /* a fresh copy so the parked profile never aliases defaults */
 /* ---- registry consumers ---- */
 function optsFromControls(advanced){
@@ -1829,11 +1907,11 @@ function wireSegment(c){
 }
 function wireControls(){
   for(var i=0;i<CONTROLS.length;i++){var c=CONTROLS[i];
-    if(c.kind==="range")linkNum(c.id,c.num,c.key,c.after);
+    if(c.kind==="range")bindNumber(c.id,c.num,c.key,c.after);
     else if(c.kind==="switch")bindSwitch(c.id,c.key,c.after);
     else if(c.kind==="seg")wireSegment(c);}
 }
-function persistNow(){try{var o={};for(var k in defaults)o[k]=appState[k];o.sv=1;localStorage.setItem("emblemConverter",JSON.stringify(o));}catch(e){}}   /* sv (schema version) gates cap restore: a pre-fix save (no sv) never restores its cap, so a stale value can never resurface; a versioned save round-trips cap like any other setting */
+function persistNow(){try{var o={};for(var k in defaults)o[k]=appState[k];o.sv=1;localStorage.setItem("emblemConverter",JSON.stringify(o));}catch(_){}}   /* sv (schema version) gates cap restore: a pre-fix save (no sv) never restores its cap, so a stale value can never resurface; a versioned save round-trips cap like any other setting */
 /* a drag or wheel-zoom fires setState (and so persist) dozens of times a second;
    coalesce to one trailing write per ~250ms and flush on unload so nothing is lost. */
 var _persistT=null;
@@ -1879,13 +1957,13 @@ function updateHistoryButtons(){var u=$("undoBtn"),r=$("redoBtn");if(u)u.disable
 /* restored/shared state is untrusted (a crafted #s= link, or cross-version localStorage):
    coerce every value to the shape defaults declares, dropping anything malformed to its default,
    so a bad payload can never survive into appState and later crash syncUI. */
-function validRestore(k,v){
+function sanitizeRestored(k,v){
   var d=/** @type {any} */(defaults)[k];
   if(k==="altSettings"){   /* the parked (inactive) mode profile: rebuild it key-by-key so a malformed payload can never survive; ui is restored before this key, so the fallback is the OTHER mode's defaults */
     var other=(appState.ui==="simple")?"advanced":"simple";
     if(!v||typeof v!=="object")return modeDefaults(other);
     var out=modeDefaults(other);
-    for(var mi=0;mi<MODE_KEYS.length;mi++){var mk=MODE_KEYS[mi];if(mk in v)out[mk]=validRestore(mk,v[mk]);}
+    for(var mi=0;mi<MODE_KEYS.length;mi++){var mk=MODE_KEYS[mi];if(mk in v)out[mk]=sanitizeRestored(mk,v[mk]);}
     return out;
   }
   if(k==="resolution")return (v==="auto"||(typeof v==="number"&&isFinite(v)))?v:d;   /* Resolution is the union type "auto" | number; the plain-string branch below would wrongly drop a pinned numeric N */
@@ -1901,15 +1979,15 @@ function validRestore(k,v){
 }
 function restore(){try{
   var h=location.hash;
-  if(h&&h.indexOf("#s=")===0){var hs=JSON.parse(decodeURIComponent(escape(atob(h.slice(3)))));if(hs){for(var hk in defaults)if(hk in hs&&hk!=="cap")appState[hk]=validRestore(hk,hs[hk]);if(hs.sv>=1&&"cap"in hs)appState.cap=validRestore("cap",hs.cap);}return;}   /* cap restored only from a versioned (post-fix) link */
-  var o=JSON.parse(localStorage.getItem("emblemConverter")||"null");if(o){for(var k in defaults)if(k in o&&k!=="cap")appState[k]=validRestore(k,o[k]);if(o.sv>=1&&"cap"in o)appState.cap=validRestore("cap",o.cap);   /* cap restored ONLY from a versioned save (o.sv); a pre-fix save without sv keeps the default, so no stale cap can resurface */
+  if(h&&h.indexOf("#s=")===0){var hs=JSON.parse(decodeURIComponent(escape(atob(h.slice(3)))));if(hs){for(var hk in defaults)if(hk in hs&&hk!=="cap")appState[hk]=sanitizeRestored(hk,hs[hk]);if(hs.sv>=1&&"cap"in hs)appState.cap=sanitizeRestored("cap",hs.cap);}return;}   /* cap restored only from a versioned (post-fix) link */
+  var o=JSON.parse(localStorage.getItem("emblemConverter")||"null");if(o){for(var k in defaults)if(k in o&&k!=="cap")appState[k]=sanitizeRestored(k,o[k]);if(o.sv>=1&&"cap"in o)appState.cap=sanitizeRestored("cap",o.cap);   /* cap restored ONLY from a versioned save (o.sv); a pre-fix save without sv keeps the default, so no stale cap can resurface */
     if(!("altSettings"in o))appState.altSettings=modeDefaults(appState.ui==="simple"?"advanced":"simple");}   /* migrate a pre-independent-modes save: seed the parked profile from the other mode's defaults */
-}catch(e){}}
+}catch(_){}}
 function shareLink(){
   try{var o={};for(var k in defaults)o[k]=appState[k];o.sv=1;
     var url=location.href.split("#")[0]+"#s="+btoa(unescape(encodeURIComponent(JSON.stringify(o))));
     copyText(url,$("shareBtn"),"Copy link");
-  }catch(e){}
+  }catch(_){}
 }
 
 /* ---- engine link: one adaptive pool of workers drives every job (the single
@@ -1929,7 +2007,7 @@ function makePool(){
       w.onmessage=function(e){var id=w._job;if(id)settle(id,e.data);};   /* ignore any late message once the worker is idle (_job 0) */
       w.onerror=function(){crash(w);};
       workers.push(w);idle.push(w);return true;
-    }catch(e){return false;}
+    }catch(_){return false;}
   }
   for(var i=0;i<want;i++)spawn();
   if(!workers.length)dead=true;                            /* no workers at all (blocked context) => callers take the inline path */
@@ -1955,7 +2033,7 @@ function makePool(){
       var w=idle.pop(),job=q.shift(),id=nid++;
       w._job=id;pend[id]={w:w,lane:job.lane,gen:job.gen,resolve:job.resolve,timer:setTimeout(function(jid){return function(){hung(jid);};}(id),job.timeout||config.jobTimeoutMs)};
       try{w.postMessage({cmd:"run",id:id,raw:job.raw,opts:job.opts,lane:job.lane,gen:job.gen},[job.raw]);}
-      catch(e){settle(id,null);}                           /* transfer failed (detached buffer): resolve null instead of wedging the queue */
+      catch(_){settle(id,null);}                           /* transfer failed (detached buffer): resolve null instead of wedging the queue */
     }
   }
   return {
@@ -1989,7 +2067,7 @@ function processedSource(){
   _psrc={key:key,w:iw,h:ih,data:data};
   return _psrc;
 }
-function cropBox(){
+function cropbox(){
   var ps=processedSource(),iw=ps.w,ih=ps.h;
   if(!effectiveCrop())return [0,0,iw,ih];
   var ck=iw+"x"+ih+":"+processedKey();
@@ -2005,7 +2083,7 @@ function cropBox(){
    zoom/pan/rotate, so it is cached and reused across transform changes. */
 function baseImage(processed){
   var ps=processedSource();
-  var bx=appState.cropRect?[appState.cropRect.x,appState.cropRect.y,appState.cropRect.size,appState.cropRect.size]:cropBox();   /* manual 1:1 crop wins over the auto empty-edge crop */
+  var bx=appState.cropRect?[appState.cropRect.x,appState.cropRect.y,appState.cropRect.size,appState.cropRect.size]:cropbox();   /* manual 1:1 crop wins over the auto empty-edge crop */
   var key=_srcSeq+"|"+ps.w+"x"+ps.h+"|"+processedKey()+"|"+bx.join(",")+"|"+(processed?1:0);
   var slot=processed?1:0,c=_baseCache[slot];
   if(c&&c.key===key)return c.val;
@@ -2047,7 +2125,7 @@ function composeTransform(base){
 }
 function fit512(processed){return composeTransform(baseImage(processed));}
 
-/* ---- run ---- */
+/* ---- encode run ---- */
 var timer=null,uid=0,busyTimer=null,runWatch=null,pendingJob=false;
 /* every terminal path (result, error, timeout, dead worker) routes through here so the
    "working" overlay and pendingJob can never get permanently stuck. */
@@ -2055,7 +2133,7 @@ function endRun(){clearTimeout(busyTimer);clearTimeout(runWatch);$("stage").clas
 function schedule(){
   if(!appState.imgEl)return;
   clearTimeout(timer);
-  timer=setTimeout(run,120);
+  timer=setTimeout(runEncode,120);
 }
 function effectiveBudget(){return appState.cap}   /* the size target is the single hard cap */
 function optsSnapshot(){
@@ -2071,8 +2149,8 @@ function optsSnapshot(){
 /* main-thread fallback: the whole search in one runEncodeJob, used only when the pool is
    unavailable or a dispatched job comes back null. blocks the UI but always yields output. */
 function runInline(my,msg){
-  var yield_=function(){return new Promise(function(r){setTimeout(r,0)})};
-  runEncodeJob(msg,function(){return uid!==my},yield_).then(function(res){if(uid===my)onResult(res);}).catch(function(e){
+  var yieldFn=function(){return new Promise(function(r){setTimeout(r,0)})};
+  runEncodeJob(msg,function(){return uid!==my},yieldFn).then(function(res){if(uid===my)onResult(res);}).catch(function(e){
     if(e!=="cancelled"&&uid===my){endRun();setOut("error",String(e));}
   });
 }
@@ -2109,7 +2187,7 @@ function runSweep(my,raw,opts,g,t0){
     var fit=null,fitI=-1,eff=null,effI=-1;
     for(var i=0;i<reps.length;i++){var r=reps[i];if(!r||!r.ok||!r.res)continue;var c=r.res;
       if(c.fits&&(!fit||(c.ssim||0)>(fit.ssim||0)+1e-9||((c.ssim||0)>(fit.ssim||0)-1e-9&&c.enc<fit.enc))){fit=c;fitI=i;}   /* best fidelity among fitting rungs (single engine per run: raw SSIM, fewest bytes on ties) */
-      if(!eff||c.enc<eff.enc){eff=c;effI=i;}                                                            /* leanest output if nothing fits */
+      if(!eff||c.enc<eff.enc){eff=c;effI=i;}                                                            /* smallestCandidate output if nothing fits */
     }
     var wi=fitI>=0?fitI:effI;
     if(wi<0){if(pool.gen("m")===g)runInline(my,{cmd:"run",id:my,raw:raw,opts:opts});return;}   /* every rung genuinely failed (not superseded): recompute the whole search on the main thread */
@@ -2125,7 +2203,7 @@ function runSweep(my,raw,opts,g,t0){
     });
   });
 }
-function run(){
+function runEncode(){
   if(!appState.imgEl)return;
   var my=++uid;
   pendingJob=true;
@@ -2134,7 +2212,7 @@ function run(){
     var im=fit512(true);                          /* removed + inked, for the engine */
     appState.sample={data:fit512(false).data,w:512};    /* original pixels, for the eyedropper */
     raw=im.data.buffer;opts=optsSnapshot();       /* raw is a fresh owned buffer; sliced per dispatch so it survives for the inline fallback */
-  }catch(err){endRun();setOut("error","Could not read this image. Try another file.");return;}   /* dimensionless SVG / over-large canvas / OOM: fail cleanly instead of wedging the stage */
+  }catch(_){endRun();setOut("error","Could not read this image. Try another file.");return;}   /* dimensionless SVG / over-large canvas / OOM: fail cleanly instead of wedging the stage */
   clearTimeout(busyTimer);
   busyTimer=setTimeout(function(){if(uid===my&&pendingJob){$("stage").classList.add("busy");setOut("busy");}},150);
   clearTimeout(runWatch);
@@ -2270,9 +2348,9 @@ function updateGauge(r,overMax){
 }
 /* console code: try the minimal layer first; if the server rejects it, retry the full layer automatically. */
 function consoleCode(svg,lmin,lfull){
-  var head="// Emblem Converter\n\nvar svgData=\""+base64Encode(svg)+"\";\n";
+  var head="// Emblem Converter v"+VERSION+"\n\nvar svgData=\""+base64Encode(svg)+"\";\n";
   var send='var req=function(layer,then){var r=new XMLHttpRequest;r.open("POST","/emblems/save",true);'
-    +'r.onreadystatechange=function(){if(r.readyState==4){var ok=false;try{var a=JSON.parse(r.responseText);if(a.Status==200){ok=true;location.reload();}}catch(e){}if(!ok){if(then)then();}}};'
+    +'r.onreadystatechange=function(){if(r.readyState==4){var ok=false;try{var a=JSON.parse(r.responseText);if(a.Status==200){ok=true;location.reload();}}catch(_){}if(!ok){if(then)then();}}};'
     +'r.setRequestHeader("Content-Type","application/json");r.setRequestHeader("__RequestVerificationToken",document.getElementsByName("__RequestVerificationToken")[0].value);r.setRequestHeader("X-Requested-With","XMLHttpRequest");'
     +'r.send(JSON.stringify({crewId:"0",emblemId:"",parentId:"",svgData:svgData,layerData:layer,hash:document.getElementById("editorField-hash").value}));};';
   return head+'var minLayer="'+base64Encode(lmin)+'";\nvar fullLayer="'+base64Encode(lfull)+'";\n(function(){'+send
@@ -2311,7 +2389,9 @@ function syncEngineUI(){var smooth=!appState.pixelize;   /* Pixelization off => 
   var fd=$("fDetail");if(fd)fd.style.display=smooth?"":"none";
   var fds=$("fDetailSeg");if(fds)fds.style.display=smooth?"":"none";   /* Simple-mode Detail segment: shown on Smooth (mirror of fColorsSeg, which shows on Pixelization) */
   var rs=$("rSharp");if(rs)rs.style.display=smooth?"none":"";   /* Sharp resize is a pixel-engine control: reveal only when Pixelization is on */
-  var fa=$("fAlpha");if(fa)fa.style.display=_srcHasAlpha?"":"none";}   /* Alpha edges only matters for sources with transparency */
+  var fa=$("fAlpha");if(fa)fa.style.display=_srcHasAlpha?"":"none";   /* Alpha edges only matters for sources with transparency */
+  var be=$("bgEdgeSw");if(be){var live=appState.bgTolerance>0;   /* background removal runs only above zero tolerance, so below it this switch reads a value nothing consumes */
+    be.setAttribute("aria-disabled",live?"false":"true");be.setAttribute("tabindex",live?"0":"-1");}}   /* Alpha edges only matters for sources with transparency */
 function applyAutoLock(){
   /* Auto-optimize locks only Colours - it searches the colour count. Resolution and Method stay
      editable: pin either one and the colour is optimized for that choice, or leave it on Auto to
@@ -2334,16 +2414,16 @@ function applyAutoLock(){
 function syncUI(){
   applyLimitCaps();    /* set each control's bounds FIRST (No engine limits widens them) so reflectControls writes extreme values into a slider that can hold them, not one still clamped to the normal max */
   reflectControls();   /* every registry control (ranges, switches, segments) */
-  syncSpecial();       /* everything that is not a plain control */
+  syncBodyFlags();       /* everything that is not a plain control */
   syncSegmentAria();       /* mirror the .on class onto aria-checked for screen readers */
 }
-function syncSpecial(){
+function syncBodyFlags(){
   document.body.classList.toggle("ui-simple",appState.ui==="simple");
   document.body.classList.toggle("ui-advanced",appState.ui==="advanced");
   document.body.classList.toggle("tech-on",appState.showTech);
   document.querySelectorAll("#uiSeg button").forEach(function(/** @type {HTMLElement} */b){b.classList.toggle("on",b.dataset.ui===appState.ui)});
   if($("textInput")!==document.activeElement)$("textInput").value=appState.textStr;
-  $("textColor").value=appState.textColor;try{$("fontSel").value=appState.textFont;}catch(e){}
+  $("textColor").value=appState.textColor;try{$("fontSel").value=appState.textFont;}catch(_){}
   document.querySelectorAll("#inputSeg button").forEach(function(/** @type {HTMLElement} */b){b.classList.toggle("on",b.dataset.in===appState.inputMode)});
   $("imageBody").style.display=appState.inputMode==="image"?"block":"none";
   $("textBody").style.display=appState.inputMode==="text"?"block":"none";
@@ -2378,7 +2458,7 @@ function clampStateToLimits(){
   appState.cap=clamp(appState.cap,config.capMin,appState.noLimits?config.capCeilNL:config.capCeil);
 }
 function clampZoom(v){var z=appState.noLimits?config.zoomX:config.zoomN;return clampValue(v,z[0],z[1]);}   /* zoom bounds widen under No engine limits (down to 1%, up to 4000%) */
-function linkNum(rId,nId,key,after){
+function bindNumber(rId,nId,key,after){
   var rg=$(rId),nm=$(nId);
   var set=function(v){
     if(isNaN(v))return;
@@ -2393,7 +2473,8 @@ function linkNum(rId,nId,key,after){
 }
 function bindSwitch(id,key,after){
   var e=$(id);
-  var toggle=function(){appState[key]=!appState[key];if(after)after();setState();};
+  var toggle=function(){if(e.getAttribute("aria-disabled")==="true")return;   /* a gated switch ignores both the click and the key path, which is why the guard sits here rather than on one caller */
+    appState[key]=!appState[key];if(after)after();setState();};
   e.addEventListener("click",toggle);
   e.addEventListener("keydown",function(ev){if(ev.key===" "||ev.key==="Enter"){ev.preventDefault();toggle();}});
 }
@@ -2420,7 +2501,7 @@ function elHasAlpha(el){
     var d=x.getImageData(0,0,w,h).data;
     for(var i=3;i<d.length;i+=4)if(d[i]<250)return true;
     return false;
-  }catch(e){return false;}
+  }catch(_){return false;}
 }
 function loadFile(file){
   if(!file||!file.type||!file.type.match("image.*")){setOut("error","That file is not an image");return}
@@ -2720,7 +2801,7 @@ function openModal(title,html,cls){
   document.addEventListener("keydown",trapTab);
   /** @type {HTMLElement} */(m.querySelector(".mbody button,.mbody input,.mbody select,.mbody textarea,.mbody a")||m.querySelector(".mclose")).focus();
 }
-function _removeModal(){var m=$("devModal");if(m)m.remove();document.removeEventListener("keydown",escClose);document.removeEventListener("keydown",trapTab);if(_modalReturnFocus&&_modalReturnFocus.focus){try{_modalReturnFocus.focus();}catch(e){}_modalReturnFocus=null;}}
+function _removeModal(){var m=$("devModal");if(m)m.remove();document.removeEventListener("keydown",escClose);document.removeEventListener("keydown",trapTab);if(_modalReturnFocus&&_modalReturnFocus.focus){try{_modalReturnFocus.focus();}catch(_){}_modalReturnFocus=null;}}
 function closeModal(){_removeModal();closeBench();}   /* dismissing the benchmark modal also aborts its sweep (cancels the benchmark lane; the pool lives on for the editor) */
 function escClose(e){if(e.key==="Escape")closeModal();}
 /* 1:1 crop tool: draw a square over the source, drag/resize or type its size, apply. */
@@ -2729,18 +2810,18 @@ function openCrop(){
   var d=dimensionsOf(appState.imgEl),iw=d.w,ih=d.h;
   var maxW=Math.min(820,(window.innerWidth||900)-90),maxH=Math.min((window.innerHeight||700)*0.58,540);
   var sc=Math.min(maxW/iw,maxH/ih),dw=Math.max(1,Math.round(iw*sc)),dh=Math.max(1,Math.round(ih*sc));
-  var body='<div class="cropStage" id="cropStage" style="width:'+dw+'px;height:'+dh+'px">'+
+  var body='<div class="cropstage" id="cropstage" style="width:'+dw+'px;height:'+dh+'px">'+
     '<canvas id="cropCanvas" width="'+dw+'" height="'+dh+'"></canvas>'+
     '<div class="cshade" id="csT"></div><div class="cshade" id="csB"></div><div class="cshade" id="csL"></div><div class="cshade" id="csR"></div>'+
-    '<div class="cropBox" id="cropBox"><span class="crnr" data-h="nw"></span><span class="crnr" data-h="ne"></span><span class="crnr" data-h="sw"></span><span class="crnr" data-h="se"></span></div></div>'+
-    '<div class="cropCtrls"><div class="csz">Size <input type="number" class="numin" id="cropSizePx" min="1" max="'+Math.min(iw,ih)+'" step="1"> px &middot; 1:1 square</div>'+
+    '<div class="cropbox" id="cropbox"><span class="crnr" data-h="nw"></span><span class="crnr" data-h="ne"></span><span class="crnr" data-h="sw"></span><span class="crnr" data-h="se"></span></div></div>'+
+    '<div class="cropctrls"><div class="csz">Size <input type="number" class="numin" id="cropSizePx" min="1" max="'+Math.min(iw,ih)+'" step="1"> px &middot; 1:1 square</div>'+
     '<div class="cbtns"><button class="btn ghost mini" id="cropReset" style="width:auto">Full image</button><button class="btn ghost mini" id="cropCancel" style="width:auto">Cancel</button><button class="btn primary mini" id="cropApply" style="width:auto">Crop</button></div></div>';
   openModal("Crop to square",body);
   var cx=ctx2d($("cropCanvas"));cx.imageSmoothingQuality="high";cx.drawImage(appState.imgEl,0,0,dw,dh);
   var box;
   if(appState.cropRect)box={x:appState.cropRect.x*sc,y:appState.cropRect.y*sc,side:appState.cropRect.size*sc};
   else{var s0=Math.min(dw,dh);box={x:(dw-s0)/2,y:(dh-s0)/2,side:s0};}
-  var boxEl=$("cropBox"),sizeInp=/** @type {HTMLInputElement} */($("cropSizePx"));
+  var boxEl=$("cropbox"),sizeInp=/** @type {HTMLInputElement} */($("cropSizePx"));
   function setRect(id,l,t,w,h){var e=$(id);e.style.left=l+"px";e.style.top=t+"px";e.style.width=Math.max(0,w)+"px";e.style.height=Math.max(0,h)+"px";}
   function render(){
     box.side=Math.max(8,Math.min(box.side,dw,dh));
@@ -2819,7 +2900,7 @@ function benchParamCell(r){return benchIsSmooth()?("D"+r.param):(r.param+"c");} 
 var BENCH_RESCOL=["#7a828e","#5aa9ff","#39c7c7","#5ecf7e","#c9d24a","#ffd06e","#ffb020","#ff7a3c"];
 var _benchRows=/** @type {BenchRow[]|null} */(null);
 function benchColorFor(N,Ns){var i=Ns.indexOf(N);if(i<0)i=0;var p=Ns.length>1?i/(Ns.length-1):0;return BENCH_RESCOL[Math.round(p*(BENCH_RESCOL.length-1))];}
-function benchFixSvg(s){return (s||"").replace('width="512" height="512"','width="512" height="512" viewBox="0 0 512 512" preserveAspectRatio="xMidYMid meet"');}
+function benchScalableSvg(s){return (s||"").replace('width="512" height="512"','width="512" height="512" viewBox="0 0 512 512" preserveAspectRatio="xMidYMid meet"');}
 function formatSize(b){return b>=1048576?(Math.round(b/104857.6)/10)+" MB":Math.round(b/1024)+" KB";}
 function benchRun(){
   if(benchRunning||!appState.imgEl)return;
@@ -2938,7 +3019,7 @@ function benchLegendHTML(Ns){
 }
 function benchPreviewHTML(r,tag){
   if(!r)return '<div class="bprevtag">PREVIEW</div><div class="bprevempty">Hover a candidate.</div>';
-  return '<div class="bprevtag">'+tag+'</div><div class="bprevart">'+benchFixSvg(r.svg)+'</div>'+
+  return '<div class="bprevtag">'+tag+'</div><div class="bprevart">'+benchScalableSvg(r.svg)+'</div>'+
     '<div class="bprevmeta">'+
     '<div class="bpmrow"><span>Resolution</span><b>'+r.N+' px</b></div>'+
     '<div class="bpmrow"><span>'+benchParamLabel()+'</span><b>'+r.param+'</b></div>'+
@@ -3171,7 +3252,7 @@ initA11y();syncUI();updatePins();updateHistoryButtons();setOut("empty");
 /* on unload: flush any coalesced save so nothing is lost, and terminate the benchmark pool */
 window.addEventListener("pagehide",function(){persistFlush();closeBench();pool.teardown();});   /* releasing the page: stop the sweep and terminate every pool worker */
 /* console credit */
-console.log("%cEmblem Converter%c by @f1f2f0e0e4e0ede8ff0e · PolyForm Noncommercial 1.0.0 · https://github.com/f1f2f0e0e4e0ede8ff0e/emblem-converter","font:700 14px system-ui;color:#ffb020","color:#8f96a1;font:12px system-ui");
+console.log("%cEmblem Converter v"+VERSION+"%c by @f1f2f0e0e4e0ede8ff0e · PolyForm Noncommercial 1.0.0 · https://github.com/f1f2f0e0e4e0ede8ff0e/emblem-converter","font:700 14px system-ui;color:#ffb020","color:#8f96a1;font:12px system-ui");
 /* on domains other than the original, show a small credit ribbon. never breaks
    the tool - forks still run and can add their own host to the list below. */
 (function(){
