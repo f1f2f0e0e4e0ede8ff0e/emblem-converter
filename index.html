@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Emblem Converter v1.2.0 (c) 2026 f1f2f0e0e4e0ede8ff0e - PolyForm Noncommercial License 1.0.0 - noncommercial use only
+<!-- Emblem Converter v1.2.1 (c) 2026 f1f2f0e0e4e0ede8ff0e - PolyForm Noncommercial License 1.0.0 - noncommercial use only
      Required Notice: Copyright (c) 2026 f1f2f0e0e4e0ede8ff0e - https://github.com/f1f2f0e0e4e0ede8ff0e/emblem-converter
      SPDX-License-Identifier: LicenseRef-PolyForm-Noncommercial-1.0.0 -->
 <html lang="en">
@@ -28,7 +28,7 @@
   :root{
     --bg:#0a0b0e;--card:#13161b;--card2:#191d24;--line:#232830;--line2:#323945;
     --ink:#eceae4;--muted:#8f96a1;--faint:#8b93a0;
-    --acc:#ffb020;--acc2:#ffd06e;--ok:#5ecf7e;--err:#ff5f55;
+    --acc:#ffb020; --grid:#1c2027;--acc2:#ffd06e;--ok:#5ecf7e;--err:#ff5f55;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
     --sans:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
   }
@@ -572,8 +572,11 @@ var TUNING={
   boundK:55, budgetPrune:1.25, searchMaxMs:24000,   /* soft time cap (ms) on the Auto-optimize sweep, under the 30s app watchdog */
   resLadder:[512,384,256,192,128],
   paretoLadder:[512,384,320,256,192,160,128,96,80,64,48,32],   /* dense (N) grid for the Pareto search */
-  paletteLadder:[128,96,72,60,52,44,36,28,24,20,16,12,11,10,9,8,7,6,5,4,3,2],  /* single source for the Auto-optimize sweep and the benchmark, so they cannot disagree by a missing step. k=2..12 is every integer (at low k one colour is a large fraction of the palette, so a budget-limited optimum can land on any k); above 12 stays sparse. enc is monotonic in k, so rungs past the budget cost nothing. */
-  detailMax:117, detailDefault:59, toleranceMin:0.3059, toleranceMax:2700,   /* Detail 1..detailMax (higher=finer) maps geometrically onto the per-strip L2 tolerance [toleranceMin,toleranceMax]. 117 steps halve the geometric ratio of the old 40-step grid, so an old Detail v lands on exactly the same tolerance at 2v-1 (old 40 -> 79 -> 6.0, old 30 -> 59 = detailDefault = Simple "High"). the finer grid lets the budget search stop closer under the cap: unused budget is discarded quality, and the coarse grid wasted ~3.4% of it on average. */
+  paletteLadder:[512,384,320,256,192,160,128,96,72,60,52,44,36,28,24,20,16,12,11,10,9,8,7,6,5,4,3,2],  /* single source for the Auto-optimize sweep and the benchmark, so they cannot disagree by a missing step. k=2..12 is every integer (at low k one colour is a large fraction of the palette, so a budget-limited optimum can land on any k); above 12 stays sparse. the ceiling is 512 because that is where the budget starts binding first: past it a detailed source cannot fit the extra colours anyway. enc is monotonic in k and the scan stops at the first rung over budget, so a rung too high costs at most one encode. */
+  detailMax:117, detailDefault:59, toleranceMin:0.3059, toleranceMax:2700,   /* Detail 1..detailMax (higher=finer) maps geometrically onto the per-strip L2 tolerance
+     [toleranceMin,toleranceMax]. detailMax-1 is 116 = 2*58 on purpose: saved projects and shared
+     links store a Detail integer, so changing detailMax silently reinterprets every one of them,
+     and only a multiple of 58 keeps the values that are already out there landing where they did. */
   toleranceLadder:/** @type {number[]} */([]),   /* filled below from detailToTolerance(1..detailMax). Auto-optimize sweeps exactly these steps, so every winner lands on an integer Detail that reproduces byte-for-byte when typed. a TUNING field so app.test can override it. */
   plManualTol:520,   /* per-strip L2 tolerance for a manual PL encode when no tol is given (the Detail control normally sets it) */
   plAlphaW:0.4,   /* alpha's weight as a 4th fitStops channel next to Lab L/a/b: keeps a knot at a sharp alpha edge so colour does not bleed across a cutout silhouette. opaque content (constant alpha) adds zero cost => byte-identical. */
@@ -742,8 +745,8 @@ function downscale(src,S,N,sharp){
 function bilateralSmooth(d,N,strength){
   if(strength<=0)return;
   var s=strength/100;
-  var r=s<TUNING.smoothRadiusSplit?TUNING.smoothRadiusLo:TUNING.smoothRadiusHi;   /* spatial radius */
-  var ss=TUNING.smoothSpatialBase+s*TUNING.smoothSpatialScale,sinv=1/(2*ss*ss);   /* spatial sigma */
+  var r=s<TUNING.smoothRadiusSplit?TUNING.smoothRadiusLo:TUNING.smoothRadiusHi;
+  var ss=TUNING.smoothSpatialBase+s*TUNING.smoothSpatialScale,sinv=1/(2*ss*ss);
   var cs=TUNING.smoothColorBase+s*TUNING.smoothColorScale,cinv=1/(2*cs*cs);       /* colour sigma: higher strength merges more */
   var src=new Float32Array(N*N*4);src.set(d);
   for(var y=0;y<N;y++)for(var x=0;x<N;x++){
@@ -1355,20 +1358,18 @@ function renderCoverage(cand,S){
   }
   return out;
 }
-/* fidelity: composite over gray, then PSNR + windowed SSIM on luma. SSIM tracks structure/edges
-   better than PSNR (which is dominated by flat regions). one rasterization feeds both.
+/* fidelity: composite over gray, then PSNR + multi-scale SSIM on luma. SSIM tracks structure and
+   edges far better than PSNR, which is dominated by flat regions. one rasterization feeds both.
 
-   there are two SSIM windows here on purpose, and only one of them ever leaves the engine:
+   Multi-scale, not single-scale: at one scale the metric reads fine structure almost exclusively and
+   cannot see chroma at all, so it scores a Pixelization result whose palette has collapsed to a few
+   colours above one that kept them. do not simplify it back.
 
-   - ssimCanonical is the definition everyone else uses (gaussian, sigma 1.5), so the number shown in
-     the app, plotted in the benchmark lab and published in the comparison is the number an outside
-     tool reproduces. it costs ~33x the proxy, which is nothing once per finished job.
-   - ssimProxy is a sliding box, cheap enough for the thousands of measurements a sweep makes. its
-     only job is to rank candidates the way the canonical metric would: at a 20px window it agrees
-     with it on 99.4% of candidate pairs (an 8px window agrees on 96.1%), and both cost the same
-     because the sliding sums make the window size free.
-
-   so the search is fast and the reported fidelity is standard, with no third number anywhere. */
+   Two windows, and only one leaves the engine:
+   - ssimCanonicalTerms is the gaussian window SSIM is defined with (sigma 1.5), so the number in the
+     app, the lab and the comparison is one an outside tool reproduces. ~33x the proxy, once per job.
+   - ssimProxyTerms is a sliding box, cheap enough for the thousands a sweep makes. it only has to
+     rank the way the canonical would, and at an 8px window it agrees on 99.2% of candidate pairs. */
 /* one render + one luma pass, shared by both windows below. transparent areas are composited over a
    neutral grey so a gap is scored as a visible difference rather than silently matching anything. */
 function lumaPair(cand,ref,S){
@@ -1389,9 +1390,9 @@ function lumaPair(cand,ref,S){
 /* the search proxy: SSIM over fully overlapping windows, held to O(1) per window by sliding the column
    sums down and across. a non-overlapping block grid is cheaper still but ranks candidates differently
    from the canonical metric, because structure landing on a block seam is scored by no window at all. */
-function ssimProxy(A,B,S){
-  var win=TUNING.ssimWin,C1=6.5025,C2=58.5225,nwin=win*win,winPos=S-win+1,ssum=0,wcnt=0,wx,wy;
-  if(!_colSumA||_colSumA.length!==S){_colSumA=new Float64Array(S);_colSumB=new Float64Array(S);_colSumAA=new Float64Array(S);_colSumBB=new Float64Array(S);_colSumAB=new Float64Array(S);}
+function ssimProxyTerms(A,B,S,out){
+  var win=TUNING.ssimWin,C1=SSIM_C1,C2=SSIM_C2,nwin=win*win,winPos=S-win+1,ssum=0,lsum=0,cssum=0,wcnt=0,wx,wy;
+  if(!_colSumA||_colSumA.length<S){_colSumA=new Float64Array(S);_colSumB=new Float64Array(S);_colSumAA=new Float64Array(S);_colSumBB=new Float64Array(S);_colSumAB=new Float64Array(S);}
   var ca=_colSumA,cb=_colSumB,caa=_colSumAA,cbb=_colSumBB,cab=_colSumAB;
   for(var by=0;by<winPos;by++){
     if(by===0){
@@ -1410,12 +1411,51 @@ function ssimProxy(A,B,S){
       if(bx>0){var xo=bx-1,xi=bx-1+win;wa+=ca[xi]-ca[xo];wb+=cb[xi]-cb[xo];waa+=caa[xi]-caa[xo];wbb+=cbb[xi]-cbb[xo];wab+=cab[xi]-cab[xo];}
       var ma=wa/nwin,mb=wb/nwin,
         va=(waa-nwin*ma*ma)/(nwin-1),vb=(wbb-nwin*mb*mb)/(nwin-1),cov=(wab-nwin*ma*mb)/(nwin-1);
-      ssum+=((2*ma*mb+C1)*(2*cov+C2))/((ma*ma+mb*mb+C1)*(va+vb+C2));wcnt++;
+      var lt=(2*ma*mb+C1)/(ma*ma+mb*mb+C1),ct=(2*cov+C2)/(va+vb+C2);
+      lsum+=lt;cssum+=ct;ssum+=lt*ct;wcnt++;   /* the product is single-scale SSIM; the two apart are what the multi-scale form needs, since it takes contrast-structure at every scale but luminance only at the coarsest */
     }
   }
-  return wcnt?ssum/wcnt:1;
+  var n=wcnt||1;
+  out[0]=wcnt?lsum/n:1;out[1]=wcnt?cssum/n:1;out[2]=wcnt?ssum/n:1;
 }
-function measureVsRef(cand,ref,S){var psnr=lumaPair(cand,ref,S);return {psnr:psnr,ssim:ssimProxy(_lumaA,_lumaB,S)};}
+/* one scale: the building block the multi-scale form is built from, and the shape the tests pin. */
+function ssimProxy(A,B,S){var t=_msTerms;ssimProxyTerms(A,B,S,t);return t[2];}
+/* half-size by 2x2 average, the pooling every reference multi-scale implementation uses */
+function halveInto(src,dst,S){
+  var H=S>>1,x,y;
+  for(y=0;y<H;y++){
+    var r0=(y<<1)*S,r1=r0+S,o=y*H;
+    for(x=0;x<H;x++){var c=x<<1;dst[o+x]=(src[r0+c]+src[r0+c+1]+src[r1+c]+src[r1+c+1])*0.25;}
+  }
+}
+/* Multi-scale SSIM, weights as published. Single-scale SSIM reads fine structure almost exclusively,
+   which is why it kept choosing the higher strip count: more strips resolve luma detail, and it never
+   sees what that costs elsewhere. Taking contrast-structure at five scales weighs the coarse shape of
+   the picture too, and on every contested source that is the reading a person agrees with. */
+var SSIM_C1=6.5025, SSIM_C2=58.5225;   /* (0.01*255)^2 and (0.03*255)^2, the stabilisers SSIM is defined with */
+var MS_WEIGHTS=[0.0448,0.2856,0.3001,0.2363,0.1333];
+var _msA=null,_msB=null,_msTerms=[0,0,0];
+function msSsim(A,B,S,terms){
+  /* the window needs room to sit in, so the pyramid stops before the coarsest scale falls under 16px.
+     at the 512 grid everything leaves the engine on, that is the full five scales. */
+  var n=Math.min(MS_WEIGHTS.length,1+Math.max(0,Math.floor(Math.log(S/16)/Math.LN2))),i;
+  /* the published weights sum to 1.0001, and every reference implementation uses them as they are, so
+     the full pyramid must not renormalise or the number stops matching an outside tool. a truncated
+     pyramid has no standard to match, and there renormalising keeps the value on a comparable scale. */
+  var wsum=1;if(n<MS_WEIGHTS.length){wsum=0;for(i=0;i<n;i++)wsum+=MS_WEIGHTS[i];}
+  if(!_msA||_msA.length<S*S){_msA=new Float64Array(S*S);_msB=new Float64Array(S*S);}
+  for(i=0;i<S*S;i++){_msA[i]=A[i];_msB[i]=B[i];}
+  var out=1,cur=S,t=[0,0,0];
+  for(i=0;i<n;i++){
+    terms(_msA,_msB,cur,t);
+    var w=MS_WEIGHTS[i]/wsum;                             /* renormalised so a short pyramid still returns a value on the same scale */
+    out*=Math.pow(t[1]>1e-9?t[1]:1e-9,w);
+    if(i===n-1)out*=Math.pow(t[0]>1e-9?t[0]:1e-9,w);      /* luminance enters once, at the coarsest scale */
+    else{halveInto(_msA,_msA,cur);halveInto(_msB,_msB,cur);cur>>=1;}
+  }
+  return out;
+}
+function measureVsRef(cand,ref,S){var psnr=lumaPair(cand,ref,S);return {psnr:psnr,ssim:msSsim(_lumaA,_lumaB,S,ssimProxyTerms)};}
 /* the canonical fidelity: SSIM exactly as it is defined, on the same 512 coverage render and the same
    BT.709 luma, with a gaussian window (sigma 1.5, truncated at 7px, edges reflected). run once on a
    finished candidate, never inside the sweep. */
@@ -1431,7 +1471,7 @@ function gaussKernel(){
 }
 function gaussBlur(src,dst,S){
   var K=gaussKernel(),R=(K.length-1)>>1,x,y,k,i,acc;   /* self-contained: owns its kernel and scratch, so it is callable on its own */
-  if(!_gaussPass1||_gaussPass1.length!==S*S)_gaussPass1=new Float64Array(S*S);
+  if(!_gaussPass1||_gaussPass1.length<S*S)_gaussPass1=new Float64Array(S*S);   /* the pyramid calls this at shrinking sizes, so a buffer that is already big enough is kept */
   var tmp=_gaussPass1;
   for(y=0;y<S;y++){
     var row=y*S;
@@ -1449,9 +1489,9 @@ function gaussBlur(src,dst,S){
     }
   }
 }
-function ssimCanonical(A,B,S){
+function ssimCanonicalTerms(A,B,S,out){
   var px=S*S,i;
-  if(!_meanA||_meanA.length!==px){
+  if(!_meanA||_meanA.length<px){
     _meanA=new Float64Array(px);_meanB=new Float64Array(px);
     _meanAA=new Float64Array(px);_meanBB=new Float64Array(px);_meanAB=new Float64Array(px);_prodTmp=new Float64Array(px);
   }
@@ -1459,22 +1499,27 @@ function ssimCanonical(A,B,S){
   for(i=0;i<px;i++)_prodTmp[i]=A[i]*A[i];gaussBlur(_prodTmp,_meanAA,S);
   for(i=0;i<px;i++)_prodTmp[i]=B[i]*B[i];gaussBlur(_prodTmp,_meanBB,S);
   for(i=0;i<px;i++)_prodTmp[i]=A[i]*B[i];gaussBlur(_prodTmp,_meanAB,S);
-  var C1=6.5025,C2=58.5225,sum=0;
+  var C1=SSIM_C1,C2=SSIM_C2,ls=0,cs=0,sum=0;
   for(i=0;i<px;i++){
     var ma=_meanA[i],mb=_meanB[i],va=_meanAA[i]-ma*ma,vb=_meanBB[i]-mb*mb,cov=_meanAB[i]-ma*mb;
-    sum+=((2*ma*mb+C1)*(2*cov+C2))/((ma*ma+mb*mb+C1)*(va+vb+C2));
+    var lt=(2*ma*mb+C1)/(ma*ma+mb*mb+C1),ct=(2*cov+C2)/(va+vb+C2);
+    ls+=lt;cs+=ct;sum+=lt*ct;
   }
-  /* released rather than pooled: this runs once per finished job, and holding 14MB of doubles per
-     worker for the rest of the session costs far more than re-allocating them next time. */
-  _gaussPass1=_meanA=_meanB=_meanAA=_meanBB=_meanAB=_prodTmp=null;   /* the kernel is tiny and stays */
-  return sum/px;
+  out[0]=ls/px;out[1]=cs/px;out[2]=sum/px;
 }
+/* released rather than pooled: the canonical path runs once per finished job, and holding 14MB of
+   doubles per worker for the rest of the session costs far more than re-allocating them next time. */
+function releaseMetricScratch(){_gaussPass1=_meanA=_meanB=_meanAA=_meanBB=_meanAB=_prodTmp=_msA=_msB=null;}   /* the kernel is tiny and stays */
+/* one scale, exactly as SSIM is defined: the building block of the multi-scale form above. */
+function ssimCanonical(A,B,S){var t=_msTerms;ssimCanonicalTerms(A,B,S,t);releaseMetricScratch();return t[2];}
 /* every candidate that leaves the engine is measured this way, including the over-budget ones a lean
    sweep returns: the benchmark lab plots those on the same axis as the fitting ones, and a chart that
    mixed two metrics would be worse than the ~80ms this costs per finished job. */
 function measureCanonical(cand,ref,S){
   var psnr=lumaPair(cand,ref,S);   /* same render and luma as the proxy path; only the window differs */
-  return {psnr:psnr, ssim:ssimCanonical(_lumaA,_lumaB,S)};
+  var v=msSsim(_lumaA,_lumaB,S,ssimCanonicalTerms);
+  releaseMetricScratch();
+  return {psnr:psnr, ssim:v};
 }
 
 /* ---------- pipeline / auto-fit ---------- */
@@ -1551,12 +1596,12 @@ function smoothSearch(o,ref,S,Ns,smoothSource,cancelled,yieldFn,t0){
     if(cache[idx])return cache[idx];
     var c=/** @type {Candidate} */(encodeSmoothStrips(plim,N,axis,{precision:o.precision,overlap:o.overlap,tol:tolL[idx]}));
     c.tol=tolL[idx];var m=measureVsRef(c,ref,S);c.psnr=m.psnr;c.ssim=m.ssim;c.fits=c.enc<=o.budget;
-    if(!bestAny||c.enc<bestAny.enc)bestAny=c;   /* smallestCandidate seen anywhere, for the nothing-fits fallback */
+    if(!bestAny||c.enc<bestAny.enc)bestAny=c;   /* the smallest candidate seen anywhere, for the nothing-fits fallback */
     cache[idx]=c;return c;
   }
   function bestForPair(N,axis){   /* finest-fitting candidate at this (N,axis), or null if even the coarsest overflows */
     var cache={};
-    return yieldFn().then(function(){return encodeStep(N,axis,n-1,cache);}).then(function(cHi){   /* coarsest = smallestCandidate: does anything fit here? */
+    return yieldFn().then(function(){return encodeStep(N,axis,n-1,cache);}).then(function(cHi){   /* coarsest rung, so the smallest output: does anything fit at all? */
       if(!cHi||cHi.enc>o.budget)return null;
       return yieldFn().then(function(){return encodeStep(N,axis,0,cache);}).then(function(cLo){    /* finest = heaviest: does everything fit (headroom)? */
         if(cLo.enc<=o.budget)return cLo;
@@ -1615,13 +1660,13 @@ function findBestEncode(ref,S,o,yieldFn,limitN,cancelled){
       var pFit=/** @type {Candidate|null} */(null),pAny=/** @type {Candidate|null} */(null);
       function consider(cand){
         if(!cand)return;
-        if(!pAny||cand.enc<pAny.enc)pAny=cand;   /* smallestCandidate seen anywhere, for the nothing-fits fallback */
+        if(!pAny||cand.enc<pAny.enc)pAny=cand;   /* the smallest candidate seen anywhere, for the nothing-fits fallback */
         if(cand.enc<=o.budget){var m=measureVsRef(cand,ref,S);cand.psnr=m.psnr;cand.ssim=m.ssim;
           if(!pFit||cand.ssim>pFit.ssim+1e-9||(cand.ssim>pFit.ssim-1e-9&&cand.enc<pFit.enc))pFit=cand;}
       }
       var ni=0;
       function scanResolution(N){
-        return yieldFn().then(function(){consider(tryCandidate(N,kMin,true,"hard",false));}).then(function(){   /* posterized smallestCandidate palette first: it fits even when the plain k-min encode overflows */
+        return yieldFn().then(function(){consider(tryCandidate(N,kMin,true,"hard",false));}).then(function(){   /* posterized smallest palette first: it fits even when the plain k-min encode overflows */
           var i=0;
           function scanColorCount(){
             if(i>=kA.length||(cancelled&&cancelled())||(pFit&&NOW()-t0>TUNING.searchMaxMs))return Promise.resolve();
@@ -1658,7 +1703,7 @@ function findBestEncode(ref,S,o,yieldFn,limitN,cancelled){
        (the admissible prune bounds the work). */
     var best=/** @type {Candidate|null} */(null),fitted=/** @type {Candidate|null} */(null);
     var bestFit=/** @type {Candidate|null} */(null);
-    /* deterministic engine: a single family is swept per run, so candidates are compared by raw SSIM (fewest bytes on ties) - no cross-engine handicap */
+    /* deterministic engine: a single family is swept per run, so candidates are compared by raw MS-SSIM (fewest bytes on ties) - no cross-engine handicap */
     return (function runStep(i){
       if(bestFit&&NOW()-t0>TUNING.searchMaxMs)fitted=bestFit;   /* soft time cap (watchdog insurance): return the best fit found so far rather than grind on */
       if(cancelled&&cancelled())return Promise.resolve();   /* superseded (new encode / resolution change): stop the search at the next candidate instead of grinding the whole plan, so the worker frees immediately */
@@ -1712,6 +1757,18 @@ function runEncodeJob(msg,cancelled,yieldFn){
         N:w.N,k:w.k,kx:w.kx,tol:w.tol,psnr:w.psnr,ssim:w.ssim,fits:w.fits}};   /* tol: the piecewise-linear tolerance when method is a *-PL family (undefined for hard-run), so the app can re-encode / display it */
   });
 }
+/* a yield that lets the event loop turn. the worker needs it so a cancel message can be delivered
+   between steps, which means a microtask will not do: microtasks drain before the message queue. a
+   nested setTimeout(0) is clamped to 4ms by every browser, and a sweep yields a couple of hundred
+   times, so MessageChannel is used where it exists and setTimeout only as the fallback. */
+function makeYield(){
+  if(typeof MessageChannel==="function"){
+    var ch=new MessageChannel(),q=[];
+    ch.port1.onmessage=function(){var f=q.shift();if(f)f();};
+    return function(){return new Promise(function(r){q.push(r);ch.port2.postMessage(0);});};
+  }
+  return function(){return new Promise(function(r){setTimeout(r,0);});};
+}
 /* worker link */
 // @ts-ignore importScripts is a Worker global, absent from the dom lib used by the type check
 if(typeof document==="undefined"&&typeof self!=="undefined"&&typeof importScripts==="function"){
@@ -1721,8 +1778,7 @@ if(typeof document==="undefined"&&typeof self!=="undefined"&&typeof importScript
     if(m.cmd==="cancel"){if(m.gen>(MINGEN[l]||0))MINGEN[l]=m.gen;return;}   /* a newer generation in this lane cancels its older in-flight jobs cooperatively */
     if(m.cmd!=="run")return;
     var cancelled=function(){return (m.gen||0)<(MINGEN[l]||0)};
-    var yieldFn=function(){return new Promise(function(r){setTimeout(r,0)})};
-    runEncodeJob(m,cancelled,yieldFn).then(function(res){
+    runEncodeJob(m,cancelled,makeYield()).then(function(res){
       if(res&&!cancelled())/** @type {any} */(self).postMessage(res,[res.adj]);
       else self.postMessage({id:m.id,ok:false,cancelled:true});   /* always answer so the pool frees this worker, even when the job was cancelled */
     }).catch(function(err){
@@ -1737,9 +1793,14 @@ if(typeof document==="undefined"&&typeof self!=="undefined"&&typeof importScript
 "use strict";
 (function(){
 /* ===================== APP v4 ===================== */
-var VERSION="1.2.0";   /* stamped into the generated script and the console banner. the header comment at the top of this file carries the same string for anyone reading the source; a test keeps the two from drifting. */
+var VERSION="1.2.1";   /* stamped into the generated script and the console banner. the header comment at the top of this file carries the same string for anyone reading the source; a test keeps the two from drifting. */
 var $=/** @type {(id:string)=>any} */(function(id){return document.getElementById(id)});
 var commas=function(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".")};
+/* every user-supplied string goes through here before it reaches innerHTML. the call sites escaped
+   only what their own context needed, which was right but had to be re-checked whenever a string
+   moved between element text and an attribute. one helper, all five characters, no re-checking. */
+var escHtml=function(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){
+  return c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c==='"'?"&quot;":"&#39;";});};
 /** non-null 2D canvas context: throws a clear error instead of letting a downstream call crash if the browser refuses one. @param {HTMLCanvasElement} c @param {CanvasRenderingContext2DSettings} [opts] @returns {CanvasRenderingContext2D} */
 function ctx2d(c,opts){var x=c.getContext("2d",opts);if(!x)throw new Error("2d canvas context unavailable");return x;}
 
@@ -1753,7 +1814,7 @@ var config={
   /* per-control input bounds [min,max]: n = normal, x = No engine limits (the engine's safe extreme;
      heavy is fine, freeze is not). the output cap is external; N caps at 512 because the emblem is
      physically 512x512. */
-  limits:{colors:{n:[1,128],x:[1,2048]},overlap:{n:[0,6],x:[0,100]},quantIters:{n:[1,16],x:[1,200]},bgtol:{n:[0,120],x:[0,442]},sat:{n:[0,200],x:[0,1000]},noise:{n:[0,100],x:[0,200]},bright:{n:[-100,100],x:[-200,200]},contrast:{n:[-100,100],x:[-200,200]}},
+  limits:{colors:{n:[1,512],x:[1,2048]},overlap:{n:[0,6],x:[0,100]},quantIters:{n:[1,16],x:[1,200]},bgtol:{n:[0,120],x:[0,442]},sat:{n:[0,200],x:[0,1000]},noise:{n:[0,100],x:[0,200]},bright:{n:[-100,100],x:[-200,200]},contrast:{n:[-100,100],x:[-200,200]}},
   limitKey:{colors:"colorCount",overlap:"overlap",quantIters:"quantIters",bgtol:"bgTolerance",sat:"saturation",noise:"noise",bright:"brightness",contrast:"contrast"},
   wheelStep:8, pinchClamp:24, rotStep:15, /* canvas transform gestures */
   thumbSize:128,                          /* saved-project thumbnail size */
@@ -1911,7 +1972,10 @@ function wireControls(){
     else if(c.kind==="switch")bindSwitch(c.id,c.key,c.after);
     else if(c.kind==="seg")wireSegment(c);}
 }
-function persistNow(){try{var o={};for(var k in defaults)o[k]=appState[k];o.sv=1;localStorage.setItem("emblemConverter",JSON.stringify(o));}catch(_){}}   /* sv (schema version) gates cap restore: a pre-fix save (no sv) never restores its cap, so a stale value can never resurface; a versioned save round-trips cap like any other setting */
+var _persistWarned=false;
+function persistNow(){try{var o={};for(var k in defaults)o[k]=appState[k];o.sv=1;localStorage.setItem("emblemConverter",JSON.stringify(o));}
+  catch(err){if(!_persistWarned){_persistWarned=true;   /* private windows and a full quota both land here, and the user would otherwise just find their settings gone next visit. warn once: persist runs on every change and a repeat every time would be its own problem. */
+    try{console.warn("Emblem Converter: settings could not be saved, they will not survive a reload.",err);}catch(_){}}}}   /* sv (schema version) gates cap restore: a save with no sv cannot be trusted to carry one, so it keeps the default and a stale cap can never resurface; a versioned save round-trips */
 /* a drag or wheel-zoom fires setState (and so persist) dozens of times a second;
    coalesce to one trailing write per ~250ms and flush on unload so nothing is lost. */
 var _persistT=null;
@@ -1980,7 +2044,7 @@ function sanitizeRestored(k,v){
 function restore(){try{
   var h=location.hash;
   if(h&&h.indexOf("#s=")===0){var hs=JSON.parse(decodeURIComponent(escape(atob(h.slice(3)))));if(hs){for(var hk in defaults)if(hk in hs&&hk!=="cap")appState[hk]=sanitizeRestored(hk,hs[hk]);if(hs.sv>=1&&"cap"in hs)appState.cap=sanitizeRestored("cap",hs.cap);}return;}   /* cap restored only from a versioned (post-fix) link */
-  var o=JSON.parse(localStorage.getItem("emblemConverter")||"null");if(o){for(var k in defaults)if(k in o&&k!=="cap")appState[k]=sanitizeRestored(k,o[k]);if(o.sv>=1&&"cap"in o)appState.cap=sanitizeRestored("cap",o.cap);   /* cap restored ONLY from a versioned save (o.sv); a pre-fix save without sv keeps the default, so no stale cap can resurface */
+  var o=JSON.parse(localStorage.getItem("emblemConverter")||"null");if(o){for(var k in defaults)if(k in o&&k!=="cap")appState[k]=sanitizeRestored(k,o[k]);if(o.sv>=1&&"cap"in o)appState.cap=sanitizeRestored("cap",o.cap);
     if(!("altSettings"in o))appState.altSettings=modeDefaults(appState.ui==="simple"?"advanced":"simple");}   /* migrate a pre-independent-modes save: seed the parked profile from the other mode's defaults */
 }catch(_){}}
 function shareLink(){
@@ -2092,7 +2156,7 @@ function baseImage(processed){
   var sctx=ctx2d(srcCv);
   if(processed)sctx.putImageData(new ImageData(new Uint8ClampedArray(ps.data),ps.w,ps.h),0,0);
   else sctx.drawImage(/** @type {HTMLImageElement|HTMLCanvasElement} */(appState.imgEl),0,0);
-  var D=512,r=Math.min(D/sw,D/sh);
+  var D=EMBLEM,r=Math.min(D/sw,D/sh);   /* the emblem grid the source is composed onto */
   var cropCv=document.createElement("canvas");cropCv.width=sw;cropCv.height=sh;
   ctx2d(cropCv).drawImage(srcCv,sx,sy,sw,sh,0,0,sw,sh);
   var cur=cropCv,cw=sw,ch=sh;
@@ -2109,7 +2173,7 @@ function baseImage(processed){
 }
 /* place the cached base image into the 512 frame with the user's zoom/pan/rotate. */
 function composeTransform(base){
-  var D=512,cur=base.cur,cw=base.cw,ch=base.ch,r=base.r;
+  var D=EMBLEM,cur=base.cur,cw=base.cw,ch=base.ch,r=base.r;
   var cv=document.createElement("canvas");cv.width=D;cv.height=D;
   var ctx=ctx2d(cv,{willReadFrequently:true});
   var zoom=(appState.zoom||100)/100,rot=(appState.rotation||0)*Math.PI/180,ox=appState.posX||0,oy=appState.posY||0;
@@ -2149,8 +2213,7 @@ function optsSnapshot(){
 /* main-thread fallback: the whole search in one runEncodeJob, used only when the pool is
    unavailable or a dispatched job comes back null. blocks the UI but always yields output. */
 function runInline(my,msg){
-  var yieldFn=function(){return new Promise(function(r){setTimeout(r,0)})};
-  runEncodeJob(msg,function(){return uid!==my},yieldFn).then(function(res){if(uid===my)onResult(res);}).catch(function(e){
+  runEncodeJob(msg,function(){return uid!==my},makeYield()).then(function(res){if(uid===my)onResult(res);}).catch(function(e){
     if(e!=="cancelled"&&uid===my){endRun();setOut("error",String(e));}
   });
 }
@@ -2186,8 +2249,8 @@ function runSweep(my,raw,opts,g,t0){
     if(uid!==my)return;
     var fit=null,fitI=-1,eff=null,effI=-1;
     for(var i=0;i<reps.length;i++){var r=reps[i];if(!r||!r.ok||!r.res)continue;var c=r.res;
-      if(c.fits&&(!fit||(c.ssim||0)>(fit.ssim||0)+1e-9||((c.ssim||0)>(fit.ssim||0)-1e-9&&c.enc<fit.enc))){fit=c;fitI=i;}   /* best fidelity among fitting rungs (single engine per run: raw SSIM, fewest bytes on ties) */
-      if(!eff||c.enc<eff.enc){eff=c;effI=i;}                                                            /* smallestCandidate output if nothing fits */
+      if(c.fits&&(!fit||(c.ssim||0)>(fit.ssim||0)+1e-9||((c.ssim||0)>(fit.ssim||0)-1e-9&&c.enc<fit.enc))){fit=c;fitI=i;}   /* best fidelity among fitting rungs (single engine per run: raw MS-SSIM, fewest bytes on ties) */
+      if(!eff||c.enc<eff.enc){eff=c;effI=i;}                                                            /* smallest output if nothing fits */
     }
     var wi=fitI>=0?fitI:effI;
     if(wi<0){if(pool.gen("m")===g)runInline(my,{cmd:"run",id:my,raw:raw,opts:opts});return;}   /* every rung genuinely failed (not superseded): recompute the whole search on the main thread */
@@ -2391,7 +2454,7 @@ function syncEngineUI(){var smooth=!appState.pixelize;   /* Pixelization off => 
   var rs=$("rSharp");if(rs)rs.style.display=smooth?"none":"";   /* Sharp resize is a pixel-engine control: reveal only when Pixelization is on */
   var fa=$("fAlpha");if(fa)fa.style.display=_srcHasAlpha?"":"none";   /* Alpha edges only matters for sources with transparency */
   var be=$("bgEdgeSw");if(be){var live=appState.bgTolerance>0;   /* background removal runs only above zero tolerance, so below it this switch reads a value nothing consumes */
-    be.setAttribute("aria-disabled",live?"false":"true");be.setAttribute("tabindex",live?"0":"-1");}}   /* Alpha edges only matters for sources with transparency */
+    be.setAttribute("aria-disabled",live?"false":"true");be.setAttribute("tabindex",live?"0":"-1");}}
 function applyAutoLock(){
   /* Auto-optimize locks only Colours - it searches the colour count. Resolution and Method stay
      editable: pin either one and the colour is optimized for that choice, or leave it on Auto to
@@ -2427,8 +2490,8 @@ function syncBodyFlags(){
   document.querySelectorAll("#inputSeg button").forEach(function(/** @type {HTMLElement} */b){b.classList.toggle("on",b.dataset.in===appState.inputMode)});
   $("imageBody").style.display=appState.inputMode==="image"?"block":"none";
   $("textBody").style.display=appState.inputMode==="text"?"block":"none";
-  $("budgetN").value=appState.cap;                 /* the size target field IS the hard cap */
-  $("gaugeMax").textContent=commas(appState.cap);      /* the Output gauge just displays it */
+  $("budgetN").value=appState.cap;
+  $("gaugeMax").textContent=commas(appState.cap);
   $("cmp").value=appState.cmp;
   $("bgColor").style.background=rgbToHex(appState.bgKey[0],appState.bgKey[1],appState.bgKey[2]);
   updateCanvasBar();
@@ -2459,28 +2522,28 @@ function clampStateToLimits(){
 }
 function clampZoom(v){var z=appState.noLimits?config.zoomX:config.zoomN;return clampValue(v,z[0],z[1]);}   /* zoom bounds widen under No engine limits (down to 1%, up to 4000%) */
 function bindNumber(rId,nId,key,after){
-  var rg=$(rId),nm=$(nId);
+  var range=$(rId),num=$(nId);
   var set=function(v){
     if(isNaN(v))return;
-    v=Math.max(+rg.min,Math.min(+rg.max,Math.round(v)));   /* read caps live so No engine limits can raise them */
-    appState[key]=v;rg.value=v;nm.value=v;
+    v=Math.max(+range.min,Math.min(+range.max,Math.round(v)));   /* read caps live so No engine limits can raise them */
+    appState[key]=v;range.value=v;num.value=v;
     if(after)after();
     setState(null,{sync:false});
   };
-  rg.addEventListener("input",function(){set(+rg.value)});
-  nm.addEventListener("input",function(){if(nm.value==="")return;set(+nm.value)});
-  nm.addEventListener("blur",function(){nm.value=appState[key]});
+  range.addEventListener("input",function(){set(+range.value)});
+  num.addEventListener("input",function(){if(num.value==="")return;set(+num.value)});
+  num.addEventListener("blur",function(){num.value=appState[key]});
 }
 function bindSwitch(id,key,after){
-  var e=$(id);
-  var toggle=function(){if(e.getAttribute("aria-disabled")==="true")return;   /* a gated switch ignores both the click and the key path, which is why the guard sits here rather than on one caller */
+  var el=$(id);
+  var toggle=function(){if(el.getAttribute("aria-disabled")==="true")return;   /* a gated switch ignores both the click and the key path, which is why the guard sits here rather than on one caller */
     appState[key]=!appState[key];if(after)after();setState();};
-  e.addEventListener("click",toggle);
-  e.addEventListener("keydown",function(ev){if(ev.key===" "||ev.key==="Enter"){ev.preventDefault();toggle();}});
+  el.addEventListener("click",toggle);
+  el.addEventListener("keydown",function(ev){if(ev.key===" "||ev.key==="Enter"){ev.preventDefault();toggle();}});
 }
 /* adopt any source (uploaded image, rendered text, or a loaded project) into the
    pipeline. el is an Image or a Canvas; both are valid for dimensionsOf/drawImage. */
-var _srcHasAlpha=false;   /* whether the current source has transparency; gates the Alpha edges control */
+var _srcHasAlpha=false;
 function adoptSource(el,name,srcData,dropHTML){
   _crop=null;_psrc=null;_srcSeq++;   /* new source: invalidate the base-image cache */
   appState.zoom=100;appState.posX=0;appState.posY=0;appState.rotation=0;appState.cropRect=null;   /* a new image starts from a clean transform and no crop */
@@ -2522,7 +2585,7 @@ function loadFile(file){
         el=cur;
       }
       _imgSource={el:el,data:rd.result,name:file.name};
-      setInputMode("image");   /* a dropped/pasted image always activates image mode */
+      setInputMode("image");
       var cd=dimensionsOf(el);if(Math.abs(cd.w-cd.h)>1)setTimeout(openCrop,50);   /* non-square upload: prompt a 1:1 crop right away */
     };
     img.onerror=function(){setOut("error","Could not open the image. Use PNG, JPG or WEBP.")};
@@ -2533,7 +2596,7 @@ function loadFile(file){
 
 /* ---- text-to-emblem: a second source that renders text onto a canvas ---- */
 var _imgSource=null,textTimer=null,fontSeq=0;
-function imageChipHTML(dataURL,name){return '<img src="'+dataURL+'"><div><div class="fn">'+String(name).replace(/</g,"&lt;")+'</div><div class="re">click to change</div></div>';}
+function imageChipHTML(dataURL,name){return '<img src="'+dataURL+'"><div><div class="fn">'+escHtml(name)+'</div><div class="re">click to change</div></div>';}
 function clearSource(){
   appState.imgEl=null;appState.srcData=null;appState.last=null;appState.origURL=null;appState.emblemSvg="";_srcHasAlpha=false;syncEngineUI();
   $("stage").classList.add("clickable");$("stage").classList.remove("grab");
@@ -2890,7 +2953,7 @@ var BENCH_RES=[512,384,320,256,192,128,96,64];
 var BENCH_KCAP=/** @type {Object.<number,number>} */({512:24,384:36,320:52,256:72,192:128,128:128,96:96,64:72});
 function benchPalette(N){var cap=BENCH_KCAP[N]||128;return TUNING.paletteLadder.filter(function(/** @type {number} */k){return k<=cap;}).sort(function(/** @type {number} */a,/** @type {number} */b){return a-b;});}
 /* Smooth-mode grid axis: Detail (1..detailMax) instead of colour count. Higher detail = finer tolerance = more bytes (same role k plays for Pixelization). */
-var BENCH_DETAIL=[79,67,57,47,39,31,25,19,13,7];   /* the same ten tolerances as before, on the finer Detail grid (old v -> 2v-1) */
+var BENCH_DETAIL=[79,67,57,47,39,31,25,19,13,7];   /* ten tolerances spread across the Detail grid */
 var BENCH_DCAP=/** @type {Object.<number,number>} */({512:47,384:67});   /* high resolution + high detail overflows fast AND is the slowest smooth encode, so cap that corner; other resolutions sweep the full ladder */
 function benchDetailLadder(N){var cap=BENCH_DCAP[N]||TUNING.detailMax;return BENCH_DETAIL.filter(function(/** @type {number} */d){return d<=cap;});}
 var benchMode="pixel";   /* "pixel" | "smooth" - set by benchRun from the active engine; drives the Colours<->Detail column + all labels */
@@ -2992,22 +3055,22 @@ function rdChartSVG(rows,front,o){
   function yOf(p){return mT+(1-(p-ymin)/(ymax-ymin))*ph;}
   var s='<svg class="rdsvg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Rate-distortion chart">';
   var bx=xOf(cap),lo=Math.pow(10,xlo),hi=Math.pow(10,xhi);
-  if(bx<W-mR)s+='<rect x="'+bx.toFixed(1)+'" y="'+mT+'" width="'+(W-mR-bx).toFixed(1)+'" height="'+ph+'" fill="#ff5f55" fill-opacity="0.045"/>';
+  if(bx<W-mR)s+='<rect x="'+bx.toFixed(1)+'" y="'+mT+'" width="'+(W-mR-bx).toFixed(1)+'" height="'+ph+'" fill="var(--err)" fill-opacity="0.045"/>';
   var ystep=(ymax-ymin)<=20?5:10,p,y;
-  for(p=ymin;p<=ymax+0.01;p+=ystep){y=yOf(p);s+='<line x1="'+mL+'" y1="'+y.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+y.toFixed(1)+'" stroke="#232830"/><text x="'+(mL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" class="rdlbl">'+p+'</text>';}
-  [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000].forEach(function(kb){var by=kb*1024;if(by<lo*0.98||by>hi*1.02)return;var x=xOf(by);s+='<line x1="'+x.toFixed(1)+'" y1="'+mT+'" x2="'+x.toFixed(1)+'" y2="'+(H-mB)+'" stroke="#1c2027"/><text x="'+x.toFixed(1)+'" y="'+(H-mB+16)+'" text-anchor="middle" class="rdlbl">'+formatSize(by)+'</text>';});
+  for(p=ymin;p<=ymax+0.01;p+=ystep){y=yOf(p);s+='<line x1="'+mL+'" y1="'+y.toFixed(1)+'" x2="'+(W-mR)+'" y2="'+y.toFixed(1)+'" stroke="var(--line)"/><text x="'+(mL-8)+'" y="'+(y+3.5).toFixed(1)+'" text-anchor="end" class="rdlbl">'+p+'</text>';}
+  [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000].forEach(function(kb){var by=kb*1024;if(by<lo*0.98||by>hi*1.02)return;var x=xOf(by);s+='<line x1="'+x.toFixed(1)+'" y1="'+mT+'" x2="'+x.toFixed(1)+'" y2="'+(H-mB)+'" stroke="var(--grid)"/><text x="'+x.toFixed(1)+'" y="'+(H-mB+16)+'" text-anchor="middle" class="rdlbl">'+formatSize(by)+'</text>';});
   s+='<text x="'+(mL+pw/2)+'" y="'+(H-4)+'" text-anchor="middle" class="rdax">size &#8594;</text>';
-  s+='<text x="12" y="'+(mT+ph/2)+'" text-anchor="middle" class="rdax" transform="rotate(-90 12 '+(mT+ph/2)+')">fidelity (SSIM %)</text>';
-  if(bx>=mL&&bx<=W-mR)s+='<line x1="'+bx.toFixed(1)+'" y1="'+mT+'" x2="'+bx.toFixed(1)+'" y2="'+(H-mB)+'" stroke="#ff5f55" stroke-width="1.3" stroke-dasharray="4 3"/><text x="'+(bx-5).toFixed(1)+'" y="'+(mT+11)+'" text-anchor="end" class="rdlbl" fill="#ff5f55">target</text>';
+  s+='<text x="12" y="'+(mT+ph/2)+'" text-anchor="middle" class="rdax" transform="rotate(-90 12 '+(mT+ph/2)+')">fidelity (MS-SSIM %)</text>';
+  if(bx>=mL&&bx<=W-mR)s+='<line x1="'+bx.toFixed(1)+'" y1="'+mT+'" x2="'+bx.toFixed(1)+'" y2="'+(H-mB)+'" stroke="var(--err)" stroke-width="1.3" stroke-dasharray="4 3"/><text x="'+(bx-5).toFixed(1)+'" y="'+(mT+11)+'" text-anchor="end" class="rdlbl" fill="var(--err)">target</text>';
   if(front.length){
     var fs=front.slice().sort(function(/** @type {BenchRow} */a,/** @type {BenchRow} */b){return a.enc-b.enc;}),line="",area="M"+xOf(fs[0].enc).toFixed(1)+" "+(H-mB)+" ";
     fs.forEach(function(/** @type {BenchRow} */r,ix){var px=xOf(r.enc).toFixed(1),py=yOf(r.ssim*100).toFixed(1);line+=(ix?"L":"M")+px+" "+py+" ";area+="L"+px+" "+py+" ";});
     area+="L"+xOf(fs[fs.length-1].enc).toFixed(1)+" "+(H-mB)+" Z";
-    s+='<path d="'+area+'" fill="#ffb020" fill-opacity="0.07"/><path d="'+line+'" fill="none" stroke="#ffb020" stroke-width="2" stroke-linejoin="round"/>';
+    s+='<path d="'+area+'" fill="var(--acc)" fill-opacity="0.07"/><path d="'+line+'" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round"/>';
   }
-  rows.forEach(function(/** @type {BenchRow} */r,ix){var col=benchColorFor(r.N,o.Ns);s+='<circle class="rdpt" data-i="'+ix+'" cx="'+xOf(r.enc).toFixed(1)+'" cy="'+yOf(r.ssim*100).toFixed(1)+'" r="4.2" fill="'+col+'"'+(r.fits?'':' fill-opacity="0.28"')+' stroke="#0a0b0e"/>';});
-  if(o.winner)s+='<circle cx="'+xOf(o.winner.enc).toFixed(1)+'" cy="'+yOf(o.winner.ssim*100).toFixed(1)+'" r="7.5" fill="none" stroke="#5ecf7e" stroke-width="2"/>';
-  if(appState.last&&appState.last.enc){var cx=xOf(appState.last.enc),cy=yOf((appState.last.ssim||0)*100);if(cx>=mL&&cx<=W-mR)s+='<path d="M'+cx.toFixed(1)+' '+(cy-6).toFixed(1)+' L'+(cx+6).toFixed(1)+' '+cy.toFixed(1)+' L'+cx.toFixed(1)+' '+(cy+6).toFixed(1)+' L'+(cx-6).toFixed(1)+' '+cy.toFixed(1)+' Z" fill="none" stroke="#ffd06e" stroke-width="1.6"/>';}
+  rows.forEach(function(/** @type {BenchRow} */r,ix){var col=benchColorFor(r.N,o.Ns);s+='<circle class="rdpt" data-i="'+ix+'" cx="'+xOf(r.enc).toFixed(1)+'" cy="'+yOf(r.ssim*100).toFixed(1)+'" r="4.2" fill="'+col+'"'+(r.fits?'':' fill-opacity="0.28"')+' stroke="var(--bg)"/>';});
+  if(o.winner)s+='<circle cx="'+xOf(o.winner.enc).toFixed(1)+'" cy="'+yOf(o.winner.ssim*100).toFixed(1)+'" r="7.5" fill="none" stroke="var(--ok)" stroke-width="2"/>';
+  if(appState.last&&appState.last.enc){var cx=xOf(appState.last.enc),cy=yOf((appState.last.ssim||0)*100);if(cx>=mL&&cx<=W-mR)s+='<path d="M'+cx.toFixed(1)+' '+(cy-6).toFixed(1)+' L'+(cx+6).toFixed(1)+' '+cy.toFixed(1)+' L'+cx.toFixed(1)+' '+(cy+6).toFixed(1)+' L'+(cx-6).toFixed(1)+' '+cy.toFixed(1)+' Z" fill="none" stroke="var(--acc2)" stroke-width="1.6"/>';}
   return s+'</svg>';
 }
 function benchLegendHTML(Ns){
@@ -3025,22 +3088,22 @@ function benchPreviewHTML(r,tag){
     '<div class="bpmrow"><span>'+benchParamLabel()+'</span><b>'+r.param+'</b></div>'+
     '<div class="bpmrow"><span>Method</span><b>'+r.mlabel+'</b></div>'+
     '<div class="bpmrow"><span>Size</span><b>'+formatBytes(r.enc)+' &middot; '+Math.round(r.pct)+'%</b></div>'+
-    '<div class="bpmrow"><span>SSIM</span><b>'+(r.ssim*100).toFixed(1)+'%</b></div>'+
+    '<div class="bpmrow"><span>MS-SSIM</span><b>'+(r.ssim*100).toFixed(1)+'%</b></div>'+
     '<div class="bpmrow"><span>PSNR</span><b>'+(r.psnr!=null?r.psnr.toFixed(1)+" dB":"-")+'</b></div>'+
     '<div class="bpmrow"><span>Compression</span><b>'+r.comp.toFixed(1)+'x</b></div></div>'+
     '<button class="btn primary mini bprevapply" style="width:100%">Load into editor</button>';
 }
 function benchCardsHTML(winner,effPick,hqPick,peak,cap,SRCRAW,nFit,nAll){
   function card(cls,label,big,sub){return '<div class="bcard'+(cls?" "+cls:"")+'"><div class="bclabel">'+label+'</div><div class="bcbig">'+big+'</div><div class="bcsub">'+sub+'</div></div>';}
-  var c=winner?card("good","Recommended",winner.N+'px &middot; '+benchParamCell(winner),(winner.ssim*100).toFixed(1)+'% SSIM &middot; '+formatBytes(winner.enc)+' &middot; '+Math.round(winner.pct)+'% of target')
+  var c=winner?card("good","Recommended",winner.N+'px &middot; '+benchParamCell(winner),(winner.ssim*100).toFixed(1)+'% MS-SSIM &middot; '+formatBytes(winner.enc)+' &middot; '+Math.round(winner.pct)+'% of target')
               :card("bad","Recommended","none fits","No candidate is under the "+formatBytes(cap)+" target. Raise it or lower detail.");
-  if(effPick)c+=card("","Most efficient",effPick.eff.toFixed(2)+' <span class="bcunit">SSIM/KB</span>',effPick.N+'px &middot; '+benchParamCell(effPick)+' &middot; '+(effPick.ssim*100).toFixed(1)+'% &middot; '+formatBytes(effPick.enc));
-  c+=card("","Smallest high-q",hqPick?formatBytes(hqPick.enc):"n/a",hqPick?(hqPick.N+'px &middot; '+benchParamCell(hqPick)+' &middot; '+(hqPick.ssim*100).toFixed(1)+'% (&#8805;95%)'):"No candidate reaches 95% SSIM");
+  if(effPick)c+=card("","Most efficient",effPick.eff.toFixed(2)+' <span class="bcunit">MS-SSIM/KB</span>',effPick.N+'px &middot; '+benchParamCell(effPick)+' &middot; '+(effPick.ssim*100).toFixed(1)+'% &middot; '+formatBytes(effPick.enc));
+  c+=card("","Smallest high-q",hqPick?formatBytes(hqPick.enc):"n/a",hqPick?(hqPick.N+'px &middot; '+benchParamCell(hqPick)+' &middot; '+(hqPick.ssim*100).toFixed(1)+'% (&#8805;95%)'):"No candidate reaches 95% MS-SSIM");
   if(peak)c+=card("","Peak fidelity",(peak.ssim*100).toFixed(1)+'%',peak.N+'px &middot; '+benchParamCell(peak)+' &middot; '+formatBytes(peak.enc)+(peak.fits?" &middot; fits":" &middot; over target"));
   if(winner)c+=card("","Compression",winner.comp.toFixed(1)+'x',formatBytes(SRCRAW)+' raw &#8594; '+formatBytes(winner.enc)+' &middot; '+nFit+'/'+nAll+' fit');
   return '<div class="bcards">'+c+'</div>';
 }
-var BENCH_COLS=[["N","Res",1],["param","Colors",1],["mlabel","Method",0],["enc","Size",1],["pct","%",1],["ssim","SSIM",1],["psnr","PSNR",1],["comp","Comp",1],["eff","SSIM/KB",1],["count","Layers",1],["ms","Time",1]];
+var BENCH_COLS=[["N","Res",1],["param","Colors",1],["mlabel","Method",0],["enc","Size",1],["pct","%",1],["ssim","MS-SSIM",1],["psnr","PSNR",1],["comp","Comp",1],["eff","MS-SSIM/KB",1],["count","Layers",1],["ms","Time",1]];
 function benchHeadHTML(){var h="<tr>";BENCH_COLS.forEach(function(c){h+='<th data-sort="'+c[0]+'"'+(c[2]?' class="num"':"")+'>'+(c[0]==="param"?benchParamLabel():c[1])+'</th>';});return h+"</tr>";}
 function benchRowsHTML(list,winner){
   var b="";list.forEach(function(/** @type {BenchRow} */r){
@@ -3111,13 +3174,13 @@ function abColumn(p,name){
   if(!p)return '<div class="abcol"><div class="abname">SLOT '+name+'</div><div class="abempty">Nothing pinned yet. Produce a design, then click Pin '+name+'.</div></div>';
   return '<div class="abcol"><div class="abname">SLOT '+name+'</div><div class="abart">'+p.svg+'</div>'+
     '<div class="abmeta">'+p.method+' '+p.N+'<br>'+(p.k==="exact"?"exact palette":p.k+" colors")+'<br>'+
-    formatBytes(p.enc)+'<br>'+(p.ssim!=null?(p.ssim*100).toFixed(1)+"% SSIM":"")+'</div></div>';
+    formatBytes(p.enc)+'<br>'+(p.ssim!=null?(p.ssim*100).toFixed(1)+"% MS-SSIM":"")+'</div></div>';
 }
 function showAB(){
   var a=appState._pinA,b=appState._pinB,delta="";
   if(a&&b){
     var db=b.enc-a.enc,ds=(b.ssim!=null&&a.ssim!=null)?(b.ssim-a.ssim)*100:null;
-    delta='<div class="abdelta">B vs A: <b>'+(db>=0?"+":"")+commas(db)+" B</b>"+(ds!=null?', <b>'+(ds>=0?"+":"")+ds.toFixed(1)+" pts SSIM</b>":"")+'</div>';
+    delta='<div class="abdelta">B vs A: <b>'+(db>=0?"+":"")+commas(db)+" B</b>"+(ds!=null?', <b>'+(ds>=0?"+":"")+ds.toFixed(1)+" pts MS-SSIM</b>":"")+'</div>';
   }
   openModal("A / B compare",'<div class="abwrap">'+abColumn(a,"A")+abColumn(b,"B")+'</div>'+delta);
 }
@@ -3207,13 +3270,13 @@ function loadProject(rec){
 function showProjects(){
   idbAll().then(function(list){
     list.sort(function(a,b){return b.updatedAt-a.updatedAt;});
-    var body='<div class="psave"><input id="pjName" class="tinput" placeholder="Project name" value="'+String(appState.fileName||"").replace(/"/g,"&quot;")+'"><button class="btn primary" id="pjSave" style="width:auto;flex:none">Save current</button></div>';
+    var body='<div class="psave"><input id="pjName" class="tinput" placeholder="Project name" value="'+escHtml(appState.fileName)+'"><button class="btn primary" id="pjSave" style="width:auto;flex:none">Save current</button></div>';
     if(!list.length)body+='<div class="abempty">No saved projects yet. Load a source and save it above.</div>';
     else{
       body+='<div class="pgrid">';
       list.forEach(function(r){
         body+='<div class="pcard"><div class="pthumb">'+(r.thumb?'<img src="'+r.thumb+'">':'')+'</div>'+
-          '<div><div class="pname">'+String(r.name).replace(/</g,"&lt;")+'</div><div class="psub">'+(r.enc?formatBytes(r.enc):"unsaved size")+'</div></div>'+
+          '<div><div class="pname">'+escHtml(r.name)+'</div><div class="psub">'+(r.enc?formatBytes(r.enc):"unsaved size")+'</div></div>'+
           '<div class="pacts"><button class="btn ghost mini pload" data-id="'+r.id+'">Load</button><button class="btn ghost mini pdel" data-id="'+r.id+'">Delete</button></div></div>';
       });
       body+='</div>';

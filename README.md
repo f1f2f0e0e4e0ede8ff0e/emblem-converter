@@ -6,7 +6,7 @@ Convert an image or a line of text into the code an emblem editor uses to reprod
 
 **[Live demo](https://f1f2f0e0e4e0ede8ff0e.github.io/emblem-converter/)**
 
-Version 1.2.0
+Version 1.2.1
 
 ## How it works
 
@@ -14,7 +14,7 @@ An emblem editor stores an emblem as vector data: solid-color rectangles that ap
 
 1. The source is drawn onto a 512 px canvas and downscaled to a working grid (64 to 512 px).
 2. Each row or column is encoded as one rectangle: a solid fill, or a hard-stop linear gradient built from a few color stops. The default engine fits those stops directly on the image; a pixelization mode instead reduces the image to a fixed palette with k-means in the Lab color space and encodes exact color runs.
-3. Identical neighboring strips are merged and identical gradients are stored once and reused. SSIM picks horizontal or vertical encoding and fits the output under the editor's size limit.
+3. Identical neighboring strips are merged and identical gradients are stored once and reused. Multi-scale SSIM picks horizontal or vertical encoding and fits the output under the editor's size limit.
 4. The SVG and layer data are emitted in the format the editor expects, with a minimal layer set and a full set as a fallback.
 
 ## Benchmark
